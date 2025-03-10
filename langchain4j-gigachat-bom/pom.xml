@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xmlns="http://maven.apache.org/POM/4.0.0"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <artifactId>langchain4j-gigachat-bom</artifactId>
+    <packaging>pom</packaging>
+    <version>1.0.7+rc7</version>
+
+    <parent>
+        <artifactId>langchain4j-gigachat-parent</artifactId>
+        <groupId>ru.sber.sbe</groupId>
+        <version>1.0.7+rc7</version>
+        <relativePath>../langchain4j-gigachat-parent/pom.xml</relativePath>
+    </parent>
+
+
+    <properties>
+        <maven.compiler.source>11</maven.compiler.source>
+        <maven.compiler.target>11</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <langchain4j.version>0.34.0</langchain4j.version>
+    </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>dev.langchain4j</groupId>
+                <artifactId>langchain4j-bom</artifactId>
+                <version>${langchain4j.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>ru.sber.sbe</groupId>
+                <artifactId>langchain4j-gigachat</artifactId>
+                <version>1.0.7+rc7</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+</project>

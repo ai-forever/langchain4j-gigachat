@@ -1,0 +1,23 @@
+package ru.sber.sbe.gigachat.internal.api.model.completions.embed;
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import lombok.*;
+
+import java.util.ArrayList;
+import java.util.List;
+
+@Builder(toBuilder = true)
+@Data
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+@NoArgsConstructor
+@AllArgsConstructor
+public class GigaEmbedRequest {
+
+    @Builder.Default
+    private String model = "Embeddings";
+
+    @Builder.Default
+    private List<String> input = new ArrayList<>();
+
+}
