@@ -1,6 +1,8 @@
 package chat.giga.langchain4j;
 
 import chat.giga.client.GigaChatClient;
+import chat.giga.client.auth.AuthClient;
+import chat.giga.http.client.HttpClient;
 import chat.giga.model.embedding.EmbeddingRequest;
 import chat.giga.model.embedding.EmbeddingResponse;
 import dev.langchain4j.data.embedding.Embedding;
@@ -22,8 +24,25 @@ public class GigaChatEmbeddingModel extends DimensionAwareEmbeddingModel {
     private final Integer batchSize;
 
     @Builder
-    public GigaChatEmbeddingModel(GigaChatClient client, String modelName, Integer batchSize) {
-        this.gigaChatClient = client;
+    public GigaChatEmbeddingModel(HttpClient apiHttpClient,
+                                  AuthClient authClient,
+                                  Integer readTimeout,
+                                  Integer connectTimeout,
+                                  String apiUrl,
+                                  boolean logRequests,
+                                  boolean logResponses,
+                                  boolean verifySslCerts,
+                                  String modelName, Integer batchSize) {
+        this.gigaChatClient = GigaChatClient.builder()
+                .apiHttpClient(apiHttpClient)
+                .apiUrl(apiUrl)
+                .authClient(authClient)
+                .connectTimeout(connectTimeout)
+                .readTimeout(readTimeout)
+                .logRequests(logRequests)
+                .logResponses(logResponses)
+                .verifySslCerts(verifySslCerts)
+                .build();
         this.modelName = modelName;
         this.batchSize = getOrDefault(batchSize, 16);
     }
