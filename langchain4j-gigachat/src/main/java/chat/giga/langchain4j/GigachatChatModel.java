@@ -82,10 +82,13 @@ public class GigachatChatModel implements ChatLanguageModel, TokenCountEstimator
         return completions.choices()
                 .stream()
                 .map(s -> {
-                    ToolExecutionRequest toolExecutionRequest = ToolExecutionRequest.builder()
-                            .name(s.message().functionCall().name())
-                            .arguments(s.message().functionCall().arguments().toString())
-                            .build();
+                    ToolExecutionRequest toolExecutionRequest = null;
+                    if (s.message().functionCall() != null) {
+                        toolExecutionRequest = ToolExecutionRequest.builder()
+                                .name(s.message().functionCall().name())
+                                .arguments(s.message().functionCall().arguments().toString())
+                                .build();
+                    }
                     return ChatResponse.builder()
                             .aiMessage(AiMessage.builder()
                                     .text(s.message().content())
@@ -117,9 +120,9 @@ public class GigachatChatModel implements ChatLanguageModel, TokenCountEstimator
                 )
                 .temperature(chatRequest.parameters().temperature() != null ? chatRequest.parameters().temperature().floatValue() : null)
                 .topP(chatRequest.parameters().topP() != null ? chatRequest.parameters().topP().floatValue() : null)
-                .maxTokens(maxRetries)
+                .maxTokens(chatRequest.parameters().maxOutputTokens())
                 .repetitionPenalty(chatRequest.parameters().frequencyPenalty() != null ? chatRequest.parameters().frequencyPenalty().floatValue() : null)
-                .function(null)
+                //.function(null)
                 .build();
     }
 
