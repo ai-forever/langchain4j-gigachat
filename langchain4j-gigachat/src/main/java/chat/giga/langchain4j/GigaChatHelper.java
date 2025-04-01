@@ -9,6 +9,7 @@ import chat.giga.model.completion.CompletionResponse;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.SystemMessage;
+import dev.langchain4j.data.message.TextContent;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.request.json.JsonObjectSchema;
@@ -40,7 +41,9 @@ public class GigaChatHelper {
         if (message instanceof UserMessage) {
             return chat.giga.model.completion.ChatMessage.builder()
                     .role(ChatMessage.Role.USER)
-                    .content(((UserMessage) message).text())
+                    .content(((UserMessage) message).contents().stream()
+                            .map(content -> content instanceof TextContent ? ((TextContent) content).text() : null)
+                            .toList().get(0))
                     .build();
         } else if (message instanceof SystemMessage) {
             return chat.giga.model.completion.ChatMessage.builder()
