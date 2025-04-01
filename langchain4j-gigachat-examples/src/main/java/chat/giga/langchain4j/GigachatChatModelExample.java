@@ -38,6 +38,5 @@ public class GigachatChatModelExample {
         } catch (Exception ex) {
             ex.printStackTrace();
         }
-
     }
 }
