@@ -43,7 +43,7 @@ public class GigaChatEmbeddingModel extends DimensionAwareEmbeddingModel {
                 .logResponses(logResponses)
                 .verifySslCerts(verifySslCerts)
                 .build();
-        this.modelName = modelName;
+        this.modelName = getOrDefault(modelName, "Embeddings");
         this.batchSize = getOrDefault(batchSize, 16);
     }
 

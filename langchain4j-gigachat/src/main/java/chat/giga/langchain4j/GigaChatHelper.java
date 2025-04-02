@@ -1,11 +1,6 @@
 package chat.giga.langchain4j;
 
-import chat.giga.model.completion.ChatFunction;
-import chat.giga.model.completion.ChatFunctionParameters;
-import chat.giga.model.completion.ChatFunctionParametersProperty;
-import chat.giga.model.completion.ChatMessage;
-import chat.giga.model.completion.CompletionRequest;
-import chat.giga.model.completion.CompletionResponse;
+import chat.giga.model.completion.*;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.SystemMessage;
@@ -24,10 +19,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import static dev.langchain4j.model.output.FinishReason.CONTENT_FILTER;
-import static dev.langchain4j.model.output.FinishReason.LENGTH;
-import static dev.langchain4j.model.output.FinishReason.STOP;
-import static dev.langchain4j.model.output.FinishReason.TOOL_EXECUTION;
+import static dev.langchain4j.model.output.FinishReason.*;
 
 public class GigaChatHelper {
 
@@ -109,24 +101,26 @@ public class GigaChatHelper {
         return CompletionRequest.builder()
                 .model(chatRequest.parameters().modelName())
                 .messages(mapperChatMessages(chatRequest.messages()))
-                .temperature(chatRequest.parameters().temperature().floatValue())
-                .topP(chatRequest.parameters().topP().floatValue())
+                .temperature(chatRequest.parameters().temperature() != null ? chatRequest.parameters().temperature().floatValue() : null)
+                .topP(chatRequest.parameters().topP() != null ? chatRequest.parameters().topP().floatValue() : null)
                 .maxTokens(chatRequest.parameters().maxOutputTokens())
-                .repetitionPenalty(chatRequest.parameters().frequencyPenalty().floatValue())
-                .functions(chatRequest.toolSpecifications()
-                        .stream()
-                        .map(toolSpecification -> {
-                            var chatFunctionParameters = ChatFunctionParameters.builder()
-                                    .required(toolSpecification.parameters().required())
-                                    .properties(mapperParameters(toolSpecification.parameters().properties()))
-                                    .build();
-                            return ChatFunction.builder()
-                                    .name(toolSpecification.name())
-                                    .description(toolSpecification.description())
-                                    .parameters(chatFunctionParameters)
-                                    .build();
-                        })
-                        .collect(Collectors.toList())
+                .repetitionPenalty(chatRequest.parameters().frequencyPenalty() != null ? chatRequest.parameters().frequencyPenalty().floatValue() : null)
+                .functions(chatRequest.toolSpecifications() != null ? (
+                                chatRequest.toolSpecifications()
+                                        .stream()
+                                        .map(toolSpecification -> {
+                                            var chatFunctionParameters = ChatFunctionParameters.builder()
+                                                    .required(toolSpecification.parameters().required())
+                                                    .properties(mapperParameters(toolSpecification.parameters().properties()))
+                                                    .build();
+                                            return ChatFunction.builder()
+                                                    .name(toolSpecification.name())
+                                                    .description(toolSpecification.description())
+                                                    .parameters(chatFunctionParameters)
+                                                    .build();
+                                        })
+                                        .collect(Collectors.toList())
+                        ) : List.of()
                 )
                 .build();
     }

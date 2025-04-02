@@ -1,20 +1,16 @@
 package chat.giga.langchain4j;
 
 import chat.giga.client.auth.AuthClient;
+import chat.giga.http.client.HttpClientException;
 import chat.giga.http.client.JdkHttpClientBuilder;
 import chat.giga.http.client.SSL;
-import chat.giga.model.ModelName;
-import dev.langchain4j.data.message.UserMessage;
-import dev.langchain4j.model.chat.request.ChatRequest;
-import dev.langchain4j.model.chat.request.DefaultChatRequestParameters;
 
 import java.net.http.HttpClient;
 
-public class GigachatChatModelExample {
-
-    public static void main(String[] args) {
+public class GigaChatEmbeddingModelExample {
+    public static void main(String args[]) {
         try {
-            GigachatChatModel model = GigachatChatModel.builder()
+            GigaChatEmbeddingModel model = GigaChatEmbeddingModel.builder()
                     .authClient(AuthClient.builder()
                             .withCertificatesAuth(new JdkHttpClientBuilder()
                                     .httpClientBuilder(HttpClient.newBuilder())
@@ -31,11 +27,11 @@ public class GigachatChatModelExample {
                     .verifySslCerts(false)
                     .logRequests(true)
                     .logResponses(true)
-                    .apiUrl("host1")
+                    .apiUrl("host")
                     .build();
-            model.chat(ChatRequest.builder().messages(new UserMessage("как дела"))
-                    .parameters(DefaultChatRequestParameters.builder().modelName(ModelName.GIGA_CHAT_PRO).build()).build());
-        } catch (Exception ex) {
+            System.out.println(model.embed("тест"));
+        } catch (HttpClientException ex) {
+            System.out.println(ex.statusCode() + ex.bodyAsString());
             ex.printStackTrace();
         }
     }
