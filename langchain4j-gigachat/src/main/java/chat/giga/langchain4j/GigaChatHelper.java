@@ -56,15 +56,18 @@ public class GigaChatHelper {
         return inputMap.entrySet().stream()
                 .collect(Collectors.toMap(
                         Map.Entry::getKey,
-                        entry -> convertToChatFunctionParametersProperty((JsonObjectSchema) entry.getValue())
+                        entry -> convertToChatFunctionParametersProperty(entry.getValue())
                 ));
     }
 
-    private static ChatFunctionParametersProperty convertToChatFunctionParametersProperty(JsonObjectSchema jsonObjectSchema) {
-        return ChatFunctionParametersProperty.builder()
-                .properties(mapperParameters(jsonObjectSchema.properties()))
-                .description(jsonObjectSchema.description())
-                .build();
+    private static ChatFunctionParametersProperty convertToChatFunctionParametersProperty(JsonSchemaElement schemaElement) {
+        if (schemaElement instanceof JsonObjectSchema) {
+            return ChatFunctionParametersProperty.builder()
+                    .properties(mapperParameters(((JsonObjectSchema) schemaElement).properties()))
+                    .description(((JsonObjectSchema) schemaElement).description())
+                    .build();
+        }
+        return ChatFunctionParametersProperty.builder().build();
     }
 
     public static ChatResponse toResponse(CompletionResponse completions) {

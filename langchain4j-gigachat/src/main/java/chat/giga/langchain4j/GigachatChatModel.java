@@ -8,6 +8,7 @@ import dev.langchain4j.model.chat.ChatLanguageModel;
 import dev.langchain4j.model.chat.TokenCountEstimator;
 import dev.langchain4j.model.chat.listener.ChatModelListener;
 import dev.langchain4j.model.chat.request.ChatRequest;
+import dev.langchain4j.model.chat.request.DefaultChatRequestParameters;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import lombok.Builder;
 
@@ -24,6 +25,7 @@ public class GigachatChatModel implements ChatLanguageModel, TokenCountEstimator
     private final Tokenizer tokenizer;
     private final Integer maxRetries;
     private final List<ChatModelListener> listeners;
+    private final DefaultChatRequestParameters defaultChatRequestParameters;
 
     @Builder
     public GigachatChatModel(HttpClient apiHttpClient,
@@ -36,7 +38,8 @@ public class GigachatChatModel implements ChatLanguageModel, TokenCountEstimator
                              boolean verifySslCerts,
                              Tokenizer tokenizer,
                              Integer maxRetries,
-                             List<ChatModelListener> listeners) {
+                             List<ChatModelListener> listeners,
+                             DefaultChatRequestParameters defaultChatRequestParameters) {
         this.client = GigaChatClient.builder()
                 .apiHttpClient(apiHttpClient)
                 .apiUrl(apiUrl)
@@ -50,6 +53,7 @@ public class GigachatChatModel implements ChatLanguageModel, TokenCountEstimator
         this.tokenizer = tokenizer;
         this.maxRetries = getOrDefault(maxRetries, 1);
         this.listeners = listeners;
+        this.defaultChatRequestParameters = defaultChatRequestParameters;
     }
 
     @Override
@@ -65,5 +69,10 @@ public class GigachatChatModel implements ChatLanguageModel, TokenCountEstimator
     @Override
     public int estimateTokenCount(List<dev.langchain4j.data.message.ChatMessage> messages) {
         return tokenizer.estimateTokenCountInMessages(messages);
+    }
+
+    @Override
+    public DefaultChatRequestParameters defaultRequestParameters() {
+        return defaultChatRequestParameters;
     }
 }
