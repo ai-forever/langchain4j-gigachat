@@ -10,7 +10,6 @@ import dev.langchain4j.model.Tokenizer;
 import dev.langchain4j.model.chat.listener.ChatModelListener;
 import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.request.ChatRequestParameters;
-import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.image.ImageModel;
 import dev.langchain4j.model.output.Response;
 import lombok.Builder;
@@ -26,7 +25,7 @@ public class GigaChatImageModel implements ImageModel {
     private final String modelName;
     private final GigaChatClient client;
     private final Integer maxRetries;
-    private GigachatChatModel chatModel;
+    private final GigachatChatModel chatModel;
 
     @Builder
     public GigaChatImageModel(HttpClient apiHttpClient,
@@ -72,17 +71,21 @@ public class GigaChatImageModel implements ImageModel {
 
     @Override
     public Response<Image> generate(String userMessage) {
-        ChatResponse response = chatModel.doChat(ChatRequest.builder()
+        var response = chatModel.doChat(ChatRequest.builder()
                 .parameters(ChatRequestParameters.builder().modelName(modelName).build())
                 .messages(new ChatMessage[]{UserMessage.from(userMessage)}).build());
 
         var completionsResponse = response.aiMessage().text();
         if (completionsResponse != null) {
-            if (completionsResponse != null && completionsResponse.contains("img src=")) {
+            if (completionsResponse.contains("img src=")) {
+
                 var fileId = completionsResponse.split("\"")[1];
-                byte[] file = withRetry(() -> client.downloadFile(fileId, null), maxRetries);
-                String data = new String(Base64.getEncoder().encode(file));
-                return Response.from(Image.builder().base64Data(data).build(), response.tokenUsage());
+
+                var file = withRetry(() -> client.downloadFile(fileId, null), maxRetries);
+
+                var base64FileData = new String(Base64.getEncoder().encode(file));
+
+                return Response.from(Image.builder().base64Data(base64FileData).build(), response.tokenUsage());
             } else {
                 return Response.from(Image.builder().build(), response.tokenUsage());
             }
