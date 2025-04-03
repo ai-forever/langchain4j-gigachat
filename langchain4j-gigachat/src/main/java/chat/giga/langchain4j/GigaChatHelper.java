@@ -1,6 +1,12 @@
 package chat.giga.langchain4j;
 
-import chat.giga.model.completion.*;
+import chat.giga.model.completion.ChatFunction;
+import chat.giga.model.completion.ChatFunctionParameters;
+import chat.giga.model.completion.ChatFunctionParametersProperty;
+import chat.giga.model.completion.ChatMessage;
+import chat.giga.model.completion.CompletionRequest;
+import chat.giga.model.completion.CompletionResponse;
+import chat.giga.model.completion.Usage;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.SystemMessage;
@@ -19,7 +25,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import static dev.langchain4j.model.output.FinishReason.*;
+import static dev.langchain4j.model.output.FinishReason.CONTENT_FILTER;
+import static dev.langchain4j.model.output.FinishReason.LENGTH;
+import static dev.langchain4j.model.output.FinishReason.STOP;
+import static dev.langchain4j.model.output.FinishReason.TOOL_EXECUTION;
 
 public class GigaChatHelper {
 
@@ -88,16 +97,20 @@ public class GigaChatHelper {
                                     .build())
                             .metadata(ChatResponseMetadata.builder()
                                     .modelName(completions.model())
-                                    .tokenUsage(new TokenUsage(
-                                            completions.usage().promptTokens(),
-                                            completions.usage().completionTokens(),
-                                            completions.usage().totalTokens()))
+                                    .tokenUsage(toTokenUsage(completions.usage()))
                                     .finishReason(finishReasonFrom(s.finishReason().value()))
                                     .build())
                             .build();
                 })
                 .findAny()
                 .orElseThrow();
+    }
+
+    public static TokenUsage toTokenUsage(Usage usage) {
+        return new TokenUsage(
+                usage.promptTokens(),
+                usage.completionTokens(),
+                usage.totalTokens());
     }
 
     public static CompletionRequest toRequest(ChatRequest chatRequest) {
@@ -128,7 +141,7 @@ public class GigaChatHelper {
                 .build();
     }
 
-    private static FinishReason finishReasonFrom(String reason) {
+    public static FinishReason finishReasonFrom(String reason) {
         if (reason == null) {
             return null;
         }

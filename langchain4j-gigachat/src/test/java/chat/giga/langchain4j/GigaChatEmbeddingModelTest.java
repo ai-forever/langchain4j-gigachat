@@ -50,7 +50,7 @@ public class GigaChatEmbeddingModelTest {
                         .build());
 
         Response<Embedding> response = model.embed("тест");
-        assertThat(response.tokenUsage().inputTokenCount()).isEqualTo(body.data().getFirst().usage().promptTokens());
-        assertThat(response.content().vectorAsList()).containsAll(body.data().getFirst().embedding());
+        assertThat(response.tokenUsage().inputTokenCount()).isEqualTo(body.data().get(0).usage().promptTokens());
+        assertThat(response.content().vectorAsList()).containsAll(body.data().get(0).embedding());
     }
 }
