@@ -7,14 +7,20 @@ import chat.giga.model.completion.ChatMessage;
 import chat.giga.model.completion.CompletionRequest;
 import chat.giga.model.completion.CompletionResponse;
 import chat.giga.model.completion.Usage;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.data.message.TextContent;
+import dev.langchain4j.data.message.ToolExecutionResultMessage;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.chat.request.ChatRequest;
+import dev.langchain4j.model.chat.request.json.JsonIntegerSchema;
+import dev.langchain4j.model.chat.request.json.JsonNumberSchema;
 import dev.langchain4j.model.chat.request.json.JsonObjectSchema;
 import dev.langchain4j.model.chat.request.json.JsonSchemaElement;
+import dev.langchain4j.model.chat.request.json.JsonStringSchema;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.chat.response.ChatResponseMetadata;
 import dev.langchain4j.model.output.FinishReason;
@@ -32,7 +38,7 @@ import static dev.langchain4j.model.output.FinishReason.TOOL_EXECUTION;
 
 public class GigaChatHelper {
 
-    public static List<ChatMessage> mapperChatMessages(List<dev.langchain4j.data.message.ChatMessage> messages) {
+    private static List<ChatMessage> convertChatMessages(List<dev.langchain4j.data.message.ChatMessage> messages) {
         return messages.stream()
                 .map(GigaChatHelper::convertMessage)
                 .collect(Collectors.toList());
@@ -54,14 +60,20 @@ public class GigaChatHelper {
         } else if (message instanceof AiMessage) {
             return chat.giga.model.completion.ChatMessage.builder()
                     .role(ChatMessage.Role.ASSISTANT)
+                    .functionsStateId(((AiMessage) message).toolExecutionRequests().get(0).id())
                     .content(((AiMessage) message).text())
+                    .build();
+        } else if (message instanceof ToolExecutionResultMessage) {
+            return chat.giga.model.completion.ChatMessage.builder()
+                    .role(ChatMessage.Role.FUNCTION)
+                    .content(((ToolExecutionResultMessage) message).text())
                     .build();
         } else {
             throw new IllegalArgumentException("Unsupported message type: " + message.getClass().getName());
         }
     }
 
-    public static Map<String, ChatFunctionParametersProperty> mapperParameters(Map<String, JsonSchemaElement> inputMap) {
+    private static Map<String, ChatFunctionParametersProperty> convertParameters(Map<String, JsonSchemaElement> inputMap) {
         return inputMap.entrySet().stream()
                 .collect(Collectors.toMap(
                         Map.Entry::getKey,
@@ -70,10 +82,27 @@ public class GigaChatHelper {
     }
 
     private static ChatFunctionParametersProperty convertToChatFunctionParametersProperty(JsonSchemaElement schemaElement) {
+        var type = "string";
         if (schemaElement instanceof JsonObjectSchema) {
             return ChatFunctionParametersProperty.builder()
-                    .properties(mapperParameters(((JsonObjectSchema) schemaElement).properties()))
+                    .type("object")
+                    .properties(convertParameters(((JsonObjectSchema) schemaElement).properties()))
                     .description(((JsonObjectSchema) schemaElement).description())
+                    .build();
+        } else if (schemaElement instanceof JsonStringSchema) {
+            return ChatFunctionParametersProperty.builder()
+                    .type(type)
+                    .description(((JsonStringSchema) schemaElement).description())
+                    .build();
+        } else if ((schemaElement instanceof JsonIntegerSchema)) {
+            return ChatFunctionParametersProperty.builder()
+                    .type(type)
+                    .description(((JsonIntegerSchema) schemaElement).description())
+                    .build();
+        } else if ((schemaElement instanceof JsonNumberSchema)) {
+            return ChatFunctionParametersProperty.builder()
+                    .type(type)
+                    .description(((JsonNumberSchema) schemaElement).description())
                     .build();
         }
         return ChatFunctionParametersProperty.builder().build();
@@ -85,19 +114,28 @@ public class GigaChatHelper {
                 .map(s -> {
                     ToolExecutionRequest toolExecutionRequest = null;
                     if (s.message().functionCall() != null) {
+                        var args = new ObjectMapper().convertValue(s.message().functionCall().arguments(), JsonNode.class).toString();
                         toolExecutionRequest = ToolExecutionRequest.builder()
+                                .id(s.message().functionsStateId())
                                 .name(s.message().functionCall().name())
-                                .arguments(s.message().functionCall().arguments().toString())
+                                .arguments(args)
                                 .build();
                     }
+                    var aiMessage = toolExecutionRequest != null ? AiMessage.builder()
+                            .text(s.message().content())
+                            .toolExecutionRequests(Collections.singletonList(toolExecutionRequest))
+                            .build()
+                            : AiMessage.builder()
+                            .text(s.message().content())
+                            .build();
                     return ChatResponse.builder()
-                            .aiMessage(AiMessage.builder()
-                                    .text(s.message().content())
-                                    .toolExecutionRequests(Collections.singletonList(toolExecutionRequest))
-                                    .build())
+                            .aiMessage(aiMessage)
                             .metadata(ChatResponseMetadata.builder()
                                     .modelName(completions.model())
-                                    .tokenUsage(toTokenUsage(completions.usage()))
+                                    .tokenUsage(new TokenUsage(
+                                            completions.usage().promptTokens(),
+                                            completions.usage().completionTokens(),
+                                            completions.usage().totalTokens()))
                                     .finishReason(finishReasonFrom(s.finishReason().value()))
                                     .build())
                             .build();
@@ -116,7 +154,7 @@ public class GigaChatHelper {
     public static CompletionRequest toRequest(ChatRequest chatRequest) {
         return CompletionRequest.builder()
                 .model(chatRequest.parameters().modelName())
-                .messages(mapperChatMessages(chatRequest.messages()))
+                .messages(convertChatMessages(chatRequest.messages()))
                 .temperature(chatRequest.parameters().temperature() != null ? chatRequest.parameters().temperature().floatValue() : null)
                 .topP(chatRequest.parameters().topP() != null ? chatRequest.parameters().topP().floatValue() : null)
                 .maxTokens(chatRequest.parameters().maxOutputTokens())
@@ -127,7 +165,7 @@ public class GigaChatHelper {
                                         .map(toolSpecification -> {
                                             var chatFunctionParameters = ChatFunctionParameters.builder()
                                                     .required(toolSpecification.parameters().required())
-                                                    .properties(mapperParameters(toolSpecification.parameters().properties()))
+                                                    .properties(convertParameters(toolSpecification.parameters().properties()))
                                                     .build();
                                             return ChatFunction.builder()
                                                     .name(toolSpecification.name())

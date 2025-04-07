@@ -2,10 +2,12 @@ package chat.giga.langchain4j;
 
 import chat.giga.client.auth.AuthClient;
 import chat.giga.client.auth.AuthClientBuilder;
+import chat.giga.model.ModelName;
 import chat.giga.model.Scope;
 import dev.langchain4j.agent.tool.Tool;
 import dev.langchain4j.model.chat.request.DefaultChatRequestParameters;
 import dev.langchain4j.model.chat.request.json.JsonSchema;
+import dev.langchain4j.model.chat.request.json.JsonStringSchema;
 import dev.langchain4j.service.AiServices;
 
 public class GigachatChatAiServicesExample {
@@ -21,22 +23,22 @@ public class GigachatChatAiServicesExample {
                                     .build())
                             .build())
                     .defaultChatRequestParameters((DefaultChatRequestParameters) DefaultChatRequestParameters.builder()
-                            .temperature(1.0)
-                            .responseFormat(JsonSchema.builder().build())
+                            .modelName(ModelName.GIGA_CHAT_PRO)
+                            .responseFormat(JsonSchema.builder().rootElement(new JsonStringSchema()).build())
                             .build())
                     .verifySslCerts(false)
                     .logRequests(true)
                     .logResponses(true)
                     .apiUrl("testApiUrl")
                     .build();
-            var s = AiServices.builder(Assistant.class)
+            var calculator = AiServices.builder(Assistant.class)
                     .chatLanguageModel(model)
                     .tools(new Calculator())
                     .build();
 
-            var answer = s.chat("What is the square root of 475695037565?");
-
-            System.out.println(answer);
+            double number = 16;
+            String result = calculator.chat("Квадратный корень из " + number);
+            System.out.println(result);
         } catch (Exception ex) {
             ex.printStackTrace();
         }
@@ -49,12 +51,7 @@ public class GigachatChatAiServicesExample {
 
     static class Calculator {
 
-        @Tool
-        double add(int a, int b) {
-            return a + b;
-        }
-
-        @Tool
+        @Tool("Возвращает квадратный корень из числа")
         double squareRoot(double x) {
             return Math.sqrt(x);
         }

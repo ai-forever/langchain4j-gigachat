@@ -51,4 +51,26 @@ public class TestData {
                 .object("test")
                 .build();
     }
+
+    public static CompletionResponse completionChatResponse() {
+        return CompletionResponse.builder()
+                .choice(Choice.builder()
+                        .message(ChoiceMessage.builder()
+                                .role(MessageRole.ASSISTANT)
+                                .content("Квадратный корень из числа 25 можно найти следующим образом:\n\n$\\sqrt{25} = ?$\n\nМы знаем, что число 25 является квадратом целого числа 5, так как $5^2 = 25$. Следовательно, $\\sqrt{25} = 5$.")
+                                .created(12344343)
+                                .build())
+                        .index(0)
+                        .finishReason(ChoiceFinishReason.STOP)
+                        .build())
+                .created(321334)
+                .model("testModel")
+                .usage(Usage.builder()
+                        .promptTokens(1)
+                        .completionTokens(2)
+                        .totalTokens(3)
+                        .build())
+                .object("test")
+                .build();
+    }
 }
