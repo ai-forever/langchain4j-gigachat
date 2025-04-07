@@ -4,7 +4,7 @@ import chat.giga.client.GigaChatClientAsync;
 import chat.giga.client.ResponseHandler;
 import chat.giga.client.auth.AuthClient;
 import chat.giga.http.client.HttpClient;
-import chat.giga.model.completion.ChoiceMessageFunctionCall;
+import chat.giga.model.completion.ChoiceFinishReason;
 import chat.giga.model.completion.CompletionChunkResponse;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.data.message.AiMessage;
@@ -20,9 +20,10 @@ import lombok.Builder;
 import java.util.ArrayList;
 import java.util.List;
 
-import static chat.giga.langchain4j.GigaChatHelper.finishReasonFrom;
-import static chat.giga.langchain4j.GigaChatHelper.toRequest;
-import static chat.giga.langchain4j.GigaChatHelper.toTokenUsage;
+import static chat.giga.langchain4j.utils.GigaChatHelper.finishReasonFrom;
+import static chat.giga.langchain4j.utils.GigaChatHelper.toRequest;
+import static chat.giga.langchain4j.utils.GigaChatHelper.toTokenUsage;
+import static chat.giga.langchain4j.utils.GigaChatHelper.toToolExecutionRequest;
 import static dev.langchain4j.internal.Utils.getOrDefault;
 
 public class GigaChatStreamingChatModel implements StreamingChatLanguageModel {
@@ -120,33 +121,11 @@ public class GigaChatStreamingChatModel implements StreamingChatLanguageModel {
                 text.append(choice.delta().content());
                 handler.onPartialResponse(choice.delta().content());
             }
-
-            //TODO need to check
-            if (choice.delta().functionCall() != null) {
-                final ChoiceMessageFunctionCall function = choice.delta().functionCall();
-                final String functionName;
-                final String functionArguments;
-                if (function.name() != null) {
-                    functionName = function.name();
-                } else {
-                    functionName = "";
-                }
-                if (function.arguments() != null && !function.arguments().isEmpty()) {
-                    functionArguments = function.arguments().toString();
-                } else {
-                    functionArguments = "";
-                }
-
-                // TODO is new or existing?
-                ToolExecutionRequest toolExecutionRequest = ToolExecutionRequest.builder()
-                        .name(functionName)
-                        .arguments(functionArguments)
-                        .build();
-                toolExecutionRequests.add(toolExecutionRequest);
+            if (choice.finishReason() == ChoiceFinishReason.FUNCTION_CALL) {
+                toolExecutionRequests.add(toToolExecutionRequest(choice));
             }
             if (choice.finishReason() != null) {
-                responseMetadataBuilder.finishReason(
-                        finishReasonFrom(choice.finishReason().value()));
+                responseMetadataBuilder.finishReason(finishReasonFrom(choice.finishReason().value()));
             }
         });
 

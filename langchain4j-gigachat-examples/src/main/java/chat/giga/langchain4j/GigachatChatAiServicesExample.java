@@ -14,7 +14,7 @@ public class GigachatChatAiServicesExample {
 
     public static void main(String[] args) {
         try {
-            GigachatChatModel model = GigachatChatModel.builder()
+            GigaChatChatModel model = GigaChatChatModel.builder()
                     .authClient(AuthClient.builder()
                             .withOAuth(AuthClientBuilder.OAuthBuilder.builder()
                                     .scope(Scope.GIGACHAT_API_PERS)

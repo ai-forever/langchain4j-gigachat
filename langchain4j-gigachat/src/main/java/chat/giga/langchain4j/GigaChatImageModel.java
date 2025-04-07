@@ -25,7 +25,7 @@ public class GigaChatImageModel implements ImageModel {
     private final String modelName;
     private final GigaChatClient client;
     private final Integer maxRetries;
-    private final GigachatChatModel chatModel;
+    private final GigaChatChatModel chatModel;
 
     @Builder
     public GigaChatImageModel(HttpClient apiHttpClient,
@@ -40,7 +40,7 @@ public class GigaChatImageModel implements ImageModel {
                               Integer maxRetries,
                               List<ChatModelListener> listeners,
                               String modelName) {
-        chatModel = GigachatChatModel.builder()
+        chatModel = GigaChatChatModel.builder()
                 .apiHttpClient(apiHttpClient)
                 .apiUrl(apiUrl)
                 .authClient(authClient)

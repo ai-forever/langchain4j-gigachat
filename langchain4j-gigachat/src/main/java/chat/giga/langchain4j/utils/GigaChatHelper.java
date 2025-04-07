@@ -1,14 +1,16 @@
-package chat.giga.langchain4j;
+package chat.giga.langchain4j.utils;
 
 import chat.giga.model.completion.ChatFunction;
 import chat.giga.model.completion.ChatFunctionParameters;
 import chat.giga.model.completion.ChatFunctionParametersProperty;
 import chat.giga.model.completion.ChatMessage;
+import chat.giga.model.completion.ChoiceChunk;
+import chat.giga.model.completion.ChoiceMessageFunctionCall;
 import chat.giga.model.completion.CompletionRequest;
 import chat.giga.model.completion.CompletionResponse;
 import chat.giga.model.completion.Usage;
+import chat.giga.util.JsonUtils;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.SystemMessage;
@@ -114,7 +116,7 @@ public class GigaChatHelper {
                 .map(s -> {
                     ToolExecutionRequest toolExecutionRequest = null;
                     if (s.message().functionCall() != null) {
-                        var args = new ObjectMapper().convertValue(s.message().functionCall().arguments(), JsonNode.class).toString();
+                        var args = toArgumentsString(s.message().functionCall());
                         toolExecutionRequest = ToolExecutionRequest.builder()
                                 .id(s.message().functionsStateId())
                                 .name(s.message().functionCall().name())
@@ -142,6 +144,33 @@ public class GigaChatHelper {
                 })
                 .findAny()
                 .orElseThrow();
+    }
+
+    public static ToolExecutionRequest toToolExecutionRequest(ChoiceChunk choice) {
+        ChoiceMessageFunctionCall function = choice.delta().functionCall();
+        String functionId = null;
+        String functionName = null;
+        String functionArguments = null;
+
+        if (choice.delta().functionsStateId() != null) {
+            functionId = choice.delta().functionsStateId();
+        }
+        if (function.name() != null) {
+            functionName = function.name();
+        }
+        if (function.arguments() != null && !function.arguments().isEmpty()) {
+            functionArguments = toArgumentsString(function);
+        }
+
+        return ToolExecutionRequest.builder()
+                .id(functionId)
+                .name(functionName)
+                .arguments(functionArguments)
+                .build();
+    }
+
+    private static String toArgumentsString(ChoiceMessageFunctionCall function) {
+        return JsonUtils.objectMapper().convertValue(function.arguments(), JsonNode.class).toString();
     }
 
     public static TokenUsage toTokenUsage(Usage usage) {

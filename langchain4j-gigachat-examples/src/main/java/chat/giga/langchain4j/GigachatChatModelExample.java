@@ -14,7 +14,7 @@ public class GigachatChatModelExample {
 
     public static void main(String[] args) {
         try {
-            GigachatChatModel model = GigachatChatModel.builder()
+            GigaChatChatModel model = GigaChatChatModel.builder()
                     .authClient(AuthClient.builder()
                             .withCertificatesAuth(new JdkHttpClientBuilder()
                                     .httpClientBuilder(HttpClient.newBuilder())

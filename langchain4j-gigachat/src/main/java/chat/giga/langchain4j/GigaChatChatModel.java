@@ -14,12 +14,12 @@ import lombok.Builder;
 
 import java.util.List;
 
-import static chat.giga.langchain4j.GigaChatHelper.toRequest;
-import static chat.giga.langchain4j.GigaChatHelper.toResponse;
+import static chat.giga.langchain4j.utils.GigaChatHelper.toRequest;
+import static chat.giga.langchain4j.utils.GigaChatHelper.toResponse;
 import static dev.langchain4j.internal.RetryUtils.withRetry;
 import static dev.langchain4j.internal.Utils.getOrDefault;
 
-public class GigachatChatModel implements ChatLanguageModel, TokenCountEstimator {
+public class GigaChatChatModel implements ChatLanguageModel, TokenCountEstimator {
 
     private final GigaChatClient client;
     private final Tokenizer tokenizer;
@@ -28,7 +28,7 @@ public class GigachatChatModel implements ChatLanguageModel, TokenCountEstimator
     private final DefaultChatRequestParameters defaultChatRequestParameters;
 
     @Builder
-    public GigachatChatModel(HttpClient apiHttpClient,
+    public GigaChatChatModel(HttpClient apiHttpClient,
                              AuthClient authClient,
                              Integer readTimeout,
                              Integer connectTimeout,

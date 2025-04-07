@@ -21,20 +21,20 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-public class GigachatChatModelTest {
+public class GigaChatChatModelTest {
 
     @Mock
     chat.giga.http.client.HttpClient httpClient;
     @Mock
     AuthClient authClient;
 
-    GigachatChatModel model;
+    GigaChatChatModel model;
 
     ObjectMapper objectMapper = JsonUtils.objectMapper();
 
     @BeforeEach
     void setUp() {
-        model = GigachatChatModel.builder()
+        model = GigaChatChatModel.builder()
                 .authClient(authClient)
                 .apiHttpClient(httpClient)
                 .apiUrl("hostTest")
