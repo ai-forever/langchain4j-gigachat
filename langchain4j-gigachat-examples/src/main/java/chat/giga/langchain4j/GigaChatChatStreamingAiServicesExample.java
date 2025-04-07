@@ -43,7 +43,7 @@ public class GigaChatChatStreamingAiServicesExample {
                     .build();
             var calculator = AiServices.builder(Assistant.class)
                     .streamingChatLanguageModel(model)
-                    .tools(new GigachatChatAiServicesExample.Calculator())
+                    .tools(new GigaChatChatStreamingAiServicesExample.Calculator())
                     .build();
 
             double number = 16;

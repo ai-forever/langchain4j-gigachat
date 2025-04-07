@@ -10,7 +10,7 @@ import dev.langchain4j.model.chat.request.DefaultChatRequestParameters;
 
 import java.net.http.HttpClient;
 
-public class GigachatChatModelExample {
+public class GigaСhatChatModelExample {
 
     public static void main(String[] args) {
         try {

@@ -10,7 +10,7 @@ import dev.langchain4j.model.chat.request.json.JsonSchema;
 import dev.langchain4j.model.chat.request.json.JsonStringSchema;
 import dev.langchain4j.service.AiServices;
 
-public class GigachatChatAiServicesExample {
+public class GigaСhatChatAiServicesExample {
 
     public static void main(String[] args) {
         try {
