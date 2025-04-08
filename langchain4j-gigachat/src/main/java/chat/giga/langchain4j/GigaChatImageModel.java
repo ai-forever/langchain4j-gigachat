@@ -4,7 +4,6 @@ import chat.giga.client.GigaChatClient;
 import chat.giga.client.auth.AuthClient;
 import chat.giga.http.client.HttpClient;
 import dev.langchain4j.data.image.Image;
-import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.Tokenizer;
 import dev.langchain4j.model.chat.listener.ChatModelListener;
@@ -73,7 +72,7 @@ public class GigaChatImageModel implements ImageModel {
     public Response<Image> generate(String userMessage) {
         var response = chatModel.doChat(ChatRequest.builder()
                 .parameters(ChatRequestParameters.builder().modelName(modelName).build())
-                .messages(new ChatMessage[]{UserMessage.from(userMessage)}).build());
+                .messages(UserMessage.from(userMessage)).build());
 
         var completionsResponse = response.aiMessage().text();
         if (completionsResponse != null) {
@@ -87,7 +86,7 @@ public class GigaChatImageModel implements ImageModel {
 
                 return Response.from(Image.builder().base64Data(base64FileData).build(), response.tokenUsage());
             } else {
-                return Response.from(Image.builder().build(), response.tokenUsage());
+                throw new RuntimeException("No image was generated response does not contain 'img src='");
             }
         } else {
             throw new RuntimeException("No image was generated response is null");

@@ -2,6 +2,10 @@ package chat.giga.langchain4j;
 
 import chat.giga.client.auth.AuthClient;
 import chat.giga.http.client.HttpResponse;
+import chat.giga.model.completion.Choice;
+import chat.giga.model.completion.ChoiceMessage;
+import chat.giga.model.completion.CompletionResponse;
+import chat.giga.model.completion.Usage;
 import chat.giga.util.JsonUtils;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -13,7 +17,11 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
@@ -50,5 +58,20 @@ public class GigaChatImageModelTest {
         Response<Image> response = model.generate("нарисуй кота");
         System.out.println(response);
         assertNotNull(response.content().base64Data());
+    }
+
+    @Test
+    void generateException() throws JsonProcessingException {
+
+        when(httpClient.execute(any()))
+                .thenReturn(HttpResponse.builder()
+                        .body(objectMapper.writeValueAsBytes(
+                                CompletionResponse.builder().usage(Usage.builder().build()).choices(List.of(
+                                        Choice.builder().message(ChoiceMessage.builder().build()).build())).build()))
+                        .build());
+
+        RuntimeException exception = assertThrows(RuntimeException.class, () -> model.generate("нарисуй кота"));
+
+        assertEquals("No image was generated response is null", exception.getMessage());
     }
 }

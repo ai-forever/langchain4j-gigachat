@@ -138,12 +138,13 @@ public class GigaChatHelper {
                                             completions.usage().promptTokens(),
                                             completions.usage().completionTokens(),
                                             completions.usage().totalTokens()))
-                                    .finishReason(finishReasonFrom(s.finishReason().value()))
+                                    .finishReason(finishReasonFrom(
+                                            s.finishReason() != null ? s.finishReason().value() : null))
                                     .build())
                             .build();
                 })
                 .findAny()
-                .orElseThrow();
+                .orElseThrow(() -> new IllegalArgumentException("Choices is empty in the response"));
     }
 
     public static ToolExecutionRequest toToolExecutionRequest(ChoiceChunk choice) {
