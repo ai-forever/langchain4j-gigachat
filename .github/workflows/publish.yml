@@ -21,7 +21,6 @@ jobs:
       - name: Build with Gradle
         run: ./gradlew build
       - name: Publish package
-        if: startsWith(github.ref, 'refs/tags/')
         run: ./gradlew publishAndReleaseToMavenCentral --stacktrace -PmavenCentralUsername="$SONATYPE_USERNAME" -PmavenCentralPassword="$SONATYPE_PASSWORD"
         env:
           SONATYPE_USERNAME: ${{ secrets.OSSRH_USERNAME }}
