@@ -19,8 +19,8 @@ import static dev.langchain4j.internal.RetryUtils.withRetry;
 import static dev.langchain4j.internal.Utils.getOrDefault;
 
 /**
- * Представляет собой реализацию GigaChat языковой модели интерфейса для генерации картинок Описание параметров можно
- * найти  <a href="https://developers.sber.ru/docs/ru/gigachat/api/reference/rest/post-chat">тут</a>
+ * Представляет собой реализацию GigaChat языковой модели интерфейса для генерации картинок
+ * <p> Описание параметров можно найти  <a href="https://developers.sber.ru/docs/ru/gigachat/api/reference/rest/post-chat">тут</a>
  */
 public class GigaChatImageModel implements ImageModel {
 
