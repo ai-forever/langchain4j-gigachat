@@ -1,5 +1,6 @@
 package chat.giga.langchain4j.utils;
 
+import chat.giga.langchain4j.GigaChatChatRequestParameters;
 import chat.giga.model.completion.ChatFunction;
 import chat.giga.model.completion.ChatFunctionParameters;
 import chat.giga.model.completion.ChatFunctionParametersProperty;
@@ -18,6 +19,7 @@ import dev.langchain4j.data.message.TextContent;
 import dev.langchain4j.data.message.ToolExecutionResultMessage;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.chat.request.ChatRequest;
+import dev.langchain4j.model.chat.request.ChatRequestParameters;
 import dev.langchain4j.model.chat.request.json.JsonIntegerSchema;
 import dev.langchain4j.model.chat.request.json.JsonNumberSchema;
 import dev.langchain4j.model.chat.request.json.JsonObjectSchema;
@@ -33,6 +35,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import static dev.langchain4j.internal.Utils.getOrDefault;
 import static dev.langchain4j.model.output.FinishReason.CONTENT_FILTER;
 import static dev.langchain4j.model.output.FinishReason.LENGTH;
 import static dev.langchain4j.model.output.FinishReason.STOP;
@@ -40,19 +43,20 @@ import static dev.langchain4j.model.output.FinishReason.TOOL_EXECUTION;
 
 public class GigaChatHelper {
 
-    private static List<ChatMessage> convertChatMessages(List<dev.langchain4j.data.message.ChatMessage> messages) {
+    private static List<ChatMessage> convertChatMessages(List<dev.langchain4j.data.message.ChatMessage> messages, GigaChatChatRequestParameters parameters) {
         return messages.stream()
-                .map(GigaChatHelper::convertMessage)
+                .map(message -> convertMessage(message, parameters))
                 .collect(Collectors.toList());
     }
 
-    private static chat.giga.model.completion.ChatMessage convertMessage(dev.langchain4j.data.message.ChatMessage message) {
+    private static chat.giga.model.completion.ChatMessage convertMessage(dev.langchain4j.data.message.ChatMessage message, GigaChatChatRequestParameters parameters) {
         if (message instanceof UserMessage) {
             return chat.giga.model.completion.ChatMessage.builder()
                     .role(ChatMessage.Role.USER)
                     .content(((UserMessage) message).contents().stream()
                             .map(content -> content instanceof TextContent ? ((TextContent) content).text() : null)
                             .toList().get(0))
+                    .attachments(getOrDefault(parameters.getAttachments(), List.of()))
                     .build();
         } else if (message instanceof SystemMessage) {
             return chat.giga.model.completion.ChatMessage.builder()
@@ -182,13 +186,18 @@ public class GigaChatHelper {
     }
 
     public static CompletionRequest toRequest(ChatRequest chatRequest) {
+        var parameters = (GigaChatChatRequestParameters) chatRequest.parameters();
         return CompletionRequest.builder()
                 .model(chatRequest.parameters().modelName())
-                .messages(convertChatMessages(chatRequest.messages()))
+                .messages(convertChatMessages(chatRequest.messages(), parameters))
                 .temperature(chatRequest.parameters().temperature() != null ? chatRequest.parameters().temperature().floatValue() : null)
                 .topP(chatRequest.parameters().topP() != null ? chatRequest.parameters().topP().floatValue() : null)
                 .maxTokens(chatRequest.parameters().maxOutputTokens())
-                .repetitionPenalty(chatRequest.parameters().frequencyPenalty() != null ? chatRequest.parameters().frequencyPenalty().floatValue() : null)
+                .repetitionPenalty(parameters.getRepetitionPenalty())
+                .profanityCheck(parameters.getProfanityCheck())
+                .stream(parameters.getStream())
+                .updateInterval(parameters.getUpdateInterval())
+                .functionCall(parameters.getFunctionCall())
                 .functions(chatRequest.toolSpecifications() != null ? (
                                 chatRequest.toolSpecifications()
                                         .stream()

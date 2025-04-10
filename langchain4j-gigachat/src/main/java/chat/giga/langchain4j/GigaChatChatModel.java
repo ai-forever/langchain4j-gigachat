@@ -8,6 +8,7 @@ import dev.langchain4j.model.chat.ChatLanguageModel;
 import dev.langchain4j.model.chat.TokenCountEstimator;
 import dev.langchain4j.model.chat.listener.ChatModelListener;
 import dev.langchain4j.model.chat.request.ChatRequest;
+import dev.langchain4j.model.chat.request.ChatRequestParameters;
 import dev.langchain4j.model.chat.request.DefaultChatRequestParameters;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import lombok.Builder;
@@ -25,7 +26,7 @@ public class GigaChatChatModel implements ChatLanguageModel, TokenCountEstimator
     private final Tokenizer tokenizer;
     private final Integer maxRetries;
     private final List<ChatModelListener> listeners;
-    private final DefaultChatRequestParameters defaultChatRequestParameters;
+    private final GigaChatChatRequestParameters defaultChatRequestParameters;
 
     @Builder
     public GigaChatChatModel(HttpClient apiHttpClient,
@@ -39,7 +40,7 @@ public class GigaChatChatModel implements ChatLanguageModel, TokenCountEstimator
                              Tokenizer tokenizer,
                              Integer maxRetries,
                              List<ChatModelListener> listeners,
-                             DefaultChatRequestParameters defaultChatRequestParameters) {
+                             GigaChatChatRequestParameters defaultChatRequestParameters) {
         this.client = GigaChatClient.builder()
                 .apiHttpClient(apiHttpClient)
                 .apiUrl(apiUrl)
@@ -53,7 +54,39 @@ public class GigaChatChatModel implements ChatLanguageModel, TokenCountEstimator
         this.tokenizer = tokenizer;
         this.maxRetries = getOrDefault(maxRetries, 1);
         this.listeners = listeners;
-        this.defaultChatRequestParameters = defaultChatRequestParameters;
+        ChatRequestParameters commonParameters;
+        if (defaultChatRequestParameters != null) {
+            commonParameters = defaultChatRequestParameters;
+        } else {
+            commonParameters = DefaultChatRequestParameters.builder().build();
+        }
+        GigaChatChatRequestParameters gigaChatParameters;
+        if (defaultChatRequestParameters != null) {
+            gigaChatParameters = defaultChatRequestParameters;
+        } else {
+            gigaChatParameters = GigaChatChatRequestParameters.builder().build();
+        }
+        this.defaultChatRequestParameters = GigaChatChatRequestParameters.builder()
+                // default
+                .modelName(commonParameters.modelName())
+                .temperature(commonParameters.temperature())
+                .topP(commonParameters.topP())
+                .frequencyPenalty(commonParameters.frequencyPenalty())
+                .presencePenalty(commonParameters.presencePenalty())
+                .maxOutputTokens(commonParameters.maxOutputTokens())
+                .stopSequences(commonParameters.stopSequences())
+                .toolSpecifications(commonParameters.toolSpecifications())
+                .toolChoice(commonParameters.toolChoice())
+                .responseFormat(commonParameters.responseFormat())
+
+                // custom
+                .updateInterval(gigaChatParameters.getUpdateInterval())
+                .stream(gigaChatParameters.getStream())
+                .profanityCheck(gigaChatParameters.getProfanityCheck())
+                .functionCall(gigaChatParameters.getFunctionCall())
+                .attachments(gigaChatParameters.getAttachments())
+                .repetitionPenalty(gigaChatParameters.getRepetitionPenalty())
+                .build();
     }
 
     @Override
@@ -72,7 +105,7 @@ public class GigaChatChatModel implements ChatLanguageModel, TokenCountEstimator
     }
 
     @Override
-    public DefaultChatRequestParameters defaultRequestParameters() {
+    public GigaChatChatRequestParameters defaultRequestParameters() {
         return defaultChatRequestParameters;
     }
 }

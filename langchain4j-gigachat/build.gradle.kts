@@ -2,7 +2,7 @@ plugins {
     id("java")
     `java-library`
     id("io.freefair.lombok") version "8.12.2"
-
+    id("langchain4j-gigachat.publish")
 }
 
 group = "chat.giga.langchain4j"

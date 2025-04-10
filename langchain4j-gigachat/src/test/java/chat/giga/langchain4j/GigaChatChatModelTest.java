@@ -8,7 +8,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.chat.request.ChatRequest;
-import dev.langchain4j.model.chat.request.DefaultChatRequestParameters;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -38,9 +37,7 @@ public class GigaChatChatModelTest {
                 .authClient(authClient)
                 .apiHttpClient(httpClient)
                 .apiUrl("hostTest")
-                .defaultChatRequestParameters((DefaultChatRequestParameters) DefaultChatRequestParameters.builder()
-                        .modelName("TestModel")
-                        .build())
+                .defaultChatRequestParameters(GigaChatChatRequestParameters.builder().build())
                 .build();
     }
 
@@ -56,7 +53,7 @@ public class GigaChatChatModelTest {
         var response = model.chat(
                 ChatRequest.builder()
                         .messages(new UserMessage("Получить положительное значение квадратного корня из числа 25"))
-                        .parameters(DefaultChatRequestParameters.builder().modelName(ModelName.GIGA_CHAT_PRO)
+                        .parameters(GigaChatChatRequestParameters.builder().modelName(ModelName.GIGA_CHAT_PRO)
                                 .build())
                         .build());
         System.out.println(response);
