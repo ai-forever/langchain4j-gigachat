@@ -22,6 +22,13 @@ import static chat.giga.langchain4j.utils.GigaChatHelper.toResponse;
 import static dev.langchain4j.internal.RetryUtils.withRetry;
 import static dev.langchain4j.internal.Utils.getOrDefault;
 
+
+/**
+ * Представляет собой реализацию GigaChat языковой модели интерфейса
+ * <p>
+ * Описание параметров можно найти  <a
+ * href="https://developers.sber.ru/docs/ru/gigachat/api/reference/rest/post-chat">тут</a>
+ */
 public class GigaChatChatModel implements ChatLanguageModel, TokenCountEstimator {
 
     private final GigaChatClient client;

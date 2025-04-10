@@ -29,6 +29,11 @@ import static chat.giga.langchain4j.utils.GigaChatHelper.toTokenUsage;
 import static chat.giga.langchain4j.utils.GigaChatHelper.toToolExecutionRequest;
 import static dev.langchain4j.internal.Utils.getOrDefault;
 
+/**
+ * Представляет собой реализацию GigaChat языковой модели интерфейса. Модель отвечает стримом токен за токеном за
+ * результат должен быть обработан с помощью {@link StreamingChatResponseHandler}. Описание параметров можно найти  <a
+ * href="https://developers.sber.ru/docs/ru/gigachat/guides/response-token-streaming">тут</a>
+ */
 public class GigaChatStreamingChatModel implements StreamingChatLanguageModel {
 
     private final GigaChatClientAsync asyncClient;

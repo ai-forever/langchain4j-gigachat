@@ -18,6 +18,9 @@ import static dev.langchain4j.internal.Utils.getOrDefault;
 
 import static java.util.stream.Collectors.toList;
 
+/**
+ * Представляет собой реализацию Embedding модели GigaChat
+ */
 public class GigaChatEmbeddingModel extends DimensionAwareEmbeddingModel {
 
     private final GigaChatClient gigaChatClient;
