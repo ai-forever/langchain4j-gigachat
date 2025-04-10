@@ -2,6 +2,7 @@ package chat.giga.langchain4j;
 
 import chat.giga.client.auth.AuthClient;
 import chat.giga.http.client.HttpResponse;
+import chat.giga.model.ModelName;
 import chat.giga.model.completion.Choice;
 import chat.giga.model.completion.ChoiceMessage;
 import chat.giga.model.completion.CompletionResponse;
@@ -10,6 +11,7 @@ import chat.giga.util.JsonUtils;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.langchain4j.data.image.Image;
+import dev.langchain4j.model.chat.request.json.JsonSchema;
 import dev.langchain4j.model.output.Response;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -43,6 +45,11 @@ public class GigaChatImageModelTest {
                 .authClient(authClient)
                 .apiHttpClient(httpClient)
                 .apiUrl("host")
+                .defaultChatRequestParameters(GigaChatChatRequestParameters.builder()
+                        .temperature(1.0)
+                        .modelName(ModelName.GIGA_CHAT_PRO)
+                        .responseFormat(JsonSchema.builder().build())
+                        .build())
                 .build();
     }
 
