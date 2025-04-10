@@ -10,11 +10,13 @@ import java.net.http.HttpClient;
 
 public class GigaChatImageModelExample {
 
-    public static void main(String args[]) {
+    public static void main(String[] args) {
         try {
 
             GigaChatImageModel model = GigaChatImageModel.builder()
-                    .modelName(ModelName.GIGA_CHAT_PRO)
+                    .defaultChatRequestParameters(GigaChatChatRequestParameters.builder()
+                            .modelName(ModelName.GIGA_CHAT_PRO)
+                            .build())
                     .authClient(AuthClient.builder()
                             .withCertificatesAuth(new JdkHttpClientBuilder()
                                     .httpClientBuilder(HttpClient.newBuilder())
@@ -31,7 +33,7 @@ public class GigaChatImageModelExample {
                     .verifySslCerts(false)
                     .logRequests(true)
                     .logResponses(true)
-                    .apiUrl("host")
+                    .apiUrl("test.ru")
                     .build();
 
             System.out.println(model.generate("Нарисуй розового кота"));

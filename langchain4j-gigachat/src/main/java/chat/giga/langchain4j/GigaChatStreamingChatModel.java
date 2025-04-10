@@ -4,6 +4,7 @@ import chat.giga.client.GigaChatClientAsync;
 import chat.giga.client.ResponseHandler;
 import chat.giga.client.auth.AuthClient;
 import chat.giga.http.client.HttpClient;
+import chat.giga.model.completion.ChatFunctionCallEnum;
 import chat.giga.model.completion.ChoiceFinishReason;
 import chat.giga.model.completion.CompletionChunkResponse;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
@@ -11,6 +12,7 @@ import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.model.chat.StreamingChatLanguageModel;
 import dev.langchain4j.model.chat.listener.ChatModelListener;
 import dev.langchain4j.model.chat.request.ChatRequest;
+import dev.langchain4j.model.chat.request.ChatRequestParameters;
 import dev.langchain4j.model.chat.request.DefaultChatRequestParameters;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.chat.response.ChatResponseMetadata;
@@ -19,6 +21,7 @@ import lombok.Builder;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 import static chat.giga.langchain4j.utils.GigaChatHelper.finishReasonFrom;
 import static chat.giga.langchain4j.utils.GigaChatHelper.toRequest;
@@ -30,7 +33,7 @@ public class GigaChatStreamingChatModel implements StreamingChatLanguageModel {
 
     private final GigaChatClientAsync asyncClient;
     private final List<ChatModelListener> listeners;
-    private final DefaultChatRequestParameters defaultChatRequestParameters;
+    private final GigaChatChatRequestParameters defaultChatRequestParameters;
 
     @Builder
     public GigaChatStreamingChatModel(HttpClient apiHttpClient,
@@ -42,7 +45,7 @@ public class GigaChatStreamingChatModel implements StreamingChatLanguageModel {
             boolean logResponses,
             boolean verifySslCerts,
             List<ChatModelListener> listeners,
-            DefaultChatRequestParameters defaultChatRequestParameters) {
+            GigaChatChatRequestParameters defaultChatRequestParameters) {
 
         this.asyncClient = GigaChatClientAsync.builder()
                 .apiHttpClient(apiHttpClient)
@@ -55,8 +58,41 @@ public class GigaChatStreamingChatModel implements StreamingChatLanguageModel {
                 .verifySslCerts(verifySslCerts)
                 .build();
         this.listeners = listeners;
-        this.defaultChatRequestParameters = (DefaultChatRequestParameters) getOrDefault(defaultChatRequestParameters,
-                DefaultChatRequestParameters.builder().build());
+        ChatRequestParameters commonParameters;
+        if (defaultChatRequestParameters != null) {
+            commonParameters = defaultChatRequestParameters;
+        } else {
+            commonParameters = DefaultChatRequestParameters.builder().build();
+        }
+        GigaChatChatRequestParameters gigaChatParameters;
+        if (defaultChatRequestParameters != null) {
+            gigaChatParameters = defaultChatRequestParameters;
+        } else {
+            gigaChatParameters = GigaChatChatRequestParameters.builder().build();
+        }
+        Objects.requireNonNull(commonParameters.modelName(), "Model name must not be null");
+
+        this.defaultChatRequestParameters = GigaChatChatRequestParameters.builder()
+                // default
+                .modelName(commonParameters.modelName())
+                .temperature(commonParameters.temperature())
+                .topP(commonParameters.topP())
+                .frequencyPenalty(commonParameters.frequencyPenalty())
+                .presencePenalty(commonParameters.presencePenalty())
+                .maxOutputTokens(commonParameters.maxOutputTokens())
+                .stopSequences(commonParameters.stopSequences())
+                .toolSpecifications(commonParameters.toolSpecifications())
+                .toolChoice(commonParameters.toolChoice())
+                .responseFormat(commonParameters.responseFormat())
+
+                // custom
+                .updateInterval(getOrDefault(gigaChatParameters.getUpdateInterval(), 0))
+                .stream(true)
+                .profanityCheck(getOrDefault(gigaChatParameters.getProfanityCheck(), false))
+                .functionCall(getOrDefault(gigaChatParameters.getFunctionCall(), ChatFunctionCallEnum.AUTO))
+                .attachments(gigaChatParameters.getAttachments())
+                .repetitionPenalty(gigaChatParameters.getRepetitionPenalty())
+                .build();
     }
 
     @Override

@@ -5,7 +5,6 @@ import chat.giga.client.auth.AuthClientBuilder;
 import chat.giga.http.client.HttpClientException;
 import chat.giga.model.ModelName;
 import chat.giga.model.Scope;
-import dev.langchain4j.model.chat.request.DefaultChatRequestParameters;
 import dev.langchain4j.model.chat.request.json.JsonSchema;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.chat.response.StreamingChatResponseHandler;
@@ -24,7 +23,7 @@ public class GigaChatStreamingChatModelExample {
                                     .clientSecret("clientSecret")
                                     .build())
                             .build())
-                    .defaultChatRequestParameters((DefaultChatRequestParameters) DefaultChatRequestParameters.builder()
+                    .defaultChatRequestParameters(GigaChatChatRequestParameters.builder()
                             .temperature(1.0)
                             .modelName(ModelName.GIGA_CHAT_PRO)
                             .responseFormat(JsonSchema.builder().build())

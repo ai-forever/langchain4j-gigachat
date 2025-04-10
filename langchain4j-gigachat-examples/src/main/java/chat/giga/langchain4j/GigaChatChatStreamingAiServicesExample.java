@@ -5,7 +5,6 @@ import chat.giga.http.client.JdkHttpClientBuilder;
 import chat.giga.http.client.SSL;
 import chat.giga.model.ModelName;
 import dev.langchain4j.agent.tool.Tool;
-import dev.langchain4j.model.chat.request.DefaultChatRequestParameters;
 import dev.langchain4j.model.chat.request.json.JsonSchema;
 import dev.langchain4j.model.chat.request.json.JsonStringSchema;
 import dev.langchain4j.service.AiServices;
@@ -32,7 +31,7 @@ public class GigaChatChatStreamingAiServicesExample {
                                             .build())
                                     .build())
                             .build())
-                    .defaultChatRequestParameters((DefaultChatRequestParameters) DefaultChatRequestParameters.builder()
+                    .defaultChatRequestParameters(GigaChatChatRequestParameters.builder()
                             .modelName(ModelName.GIGA_CHAT_PRO)
                             .responseFormat(JsonSchema.builder().rootElement(new JsonStringSchema()).build())
                             .build())

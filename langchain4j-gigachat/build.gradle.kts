@@ -20,6 +20,7 @@ dependencies {
     testImplementation("org.junit.jupiter:junit-jupiter")
     testImplementation("org.assertj:assertj-core:3.27.3")
     testImplementation("org.mockito:mockito-junit-jupiter:5.15.2")
+    testImplementation("io.github.dvgaba:easy-random-core:7.1.0")
 }
 
 tasks.test {

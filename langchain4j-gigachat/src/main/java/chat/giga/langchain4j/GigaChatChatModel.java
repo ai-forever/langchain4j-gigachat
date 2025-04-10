@@ -3,6 +3,7 @@ package chat.giga.langchain4j;
 import chat.giga.client.GigaChatClient;
 import chat.giga.client.auth.AuthClient;
 import chat.giga.http.client.HttpClient;
+import chat.giga.model.completion.ChatFunctionCallEnum;
 import dev.langchain4j.model.Tokenizer;
 import dev.langchain4j.model.chat.ChatLanguageModel;
 import dev.langchain4j.model.chat.TokenCountEstimator;
@@ -14,6 +15,7 @@ import dev.langchain4j.model.chat.response.ChatResponse;
 import lombok.Builder;
 
 import java.util.List;
+import java.util.Objects;
 
 import static chat.giga.langchain4j.utils.GigaChatHelper.toRequest;
 import static chat.giga.langchain4j.utils.GigaChatHelper.toResponse;
@@ -66,6 +68,9 @@ public class GigaChatChatModel implements ChatLanguageModel, TokenCountEstimator
         } else {
             gigaChatParameters = GigaChatChatRequestParameters.builder().build();
         }
+
+        Objects.requireNonNull(commonParameters.modelName(), "Model name must not be null");
+
         this.defaultChatRequestParameters = GigaChatChatRequestParameters.builder()
                 // default
                 .modelName(commonParameters.modelName())
@@ -80,10 +85,10 @@ public class GigaChatChatModel implements ChatLanguageModel, TokenCountEstimator
                 .responseFormat(commonParameters.responseFormat())
 
                 // custom
-                .updateInterval(gigaChatParameters.getUpdateInterval())
-                .stream(gigaChatParameters.getStream())
-                .profanityCheck(gigaChatParameters.getProfanityCheck())
-                .functionCall(gigaChatParameters.getFunctionCall())
+                .updateInterval(getOrDefault(gigaChatParameters.getUpdateInterval(), 0))
+                .stream(false)
+                .profanityCheck(getOrDefault(gigaChatParameters.getProfanityCheck(), false))
+                .functionCall(getOrDefault(gigaChatParameters.getFunctionCall(), ChatFunctionCallEnum.AUTO))
                 .attachments(gigaChatParameters.getAttachments())
                 .repetitionPenalty(gigaChatParameters.getRepetitionPenalty())
                 .build();

@@ -8,7 +8,6 @@ import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.Tokenizer;
 import dev.langchain4j.model.chat.listener.ChatModelListener;
 import dev.langchain4j.model.chat.request.ChatRequest;
-import dev.langchain4j.model.chat.request.ChatRequestParameters;
 import dev.langchain4j.model.image.ImageModel;
 import dev.langchain4j.model.output.Response;
 import lombok.Builder;
@@ -21,7 +20,6 @@ import static dev.langchain4j.internal.Utils.getOrDefault;
 
 public class GigaChatImageModel implements ImageModel {
 
-    private final String modelName;
     private final GigaChatClient client;
     private final Integer maxRetries;
     private final GigaChatChatModel chatModel;
@@ -38,7 +36,7 @@ public class GigaChatImageModel implements ImageModel {
                               Tokenizer tokenizer,
                               Integer maxRetries,
                               List<ChatModelListener> listeners,
-                              String modelName) {
+            GigaChatChatRequestParameters defaultChatRequestParameters) {
         chatModel = GigaChatChatModel.builder()
                 .apiHttpClient(apiHttpClient)
                 .apiUrl(apiUrl)
@@ -50,6 +48,7 @@ public class GigaChatImageModel implements ImageModel {
                 .verifySslCerts(verifySslCerts)
                 .listeners(listeners)
                 .tokenizer(tokenizer)
+                .defaultChatRequestParameters(defaultChatRequestParameters)
                 .build();
 
         this.client = GigaChatClient.builder()
@@ -63,16 +62,15 @@ public class GigaChatImageModel implements ImageModel {
                 .verifySslCerts(verifySslCerts)
                 .build();
 
-        this.modelName = modelName;
         this.maxRetries = getOrDefault(maxRetries, 1);
     }
 
 
     @Override
     public Response<Image> generate(String userMessage) {
-        var response = chatModel.doChat(ChatRequest.builder()
-                .parameters(ChatRequestParameters.builder().modelName(modelName).build())
-                .messages(UserMessage.from(userMessage)).build());
+        var response = chatModel.chat(ChatRequest.builder()
+                .messages(UserMessage.from(userMessage))
+                .build());
 
         var completionsResponse = response.aiMessage().text();
         if (completionsResponse != null) {
