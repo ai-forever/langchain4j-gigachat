@@ -5,7 +5,7 @@ plugins {
     id("langchain4j-gigachat.publish")
 }
 
-group = "chat.giga.langchain4j"
+group = "chat.giga"
 version = "1.0-SNAPSHOT"
 
 repositories {
