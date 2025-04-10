@@ -2,17 +2,19 @@ plugins {
     id("java")
 }
 
-group = "chat.giga.langchain4j"
-version = "0.1.0"
-
 java {
     toolchain {
         languageVersion = JavaLanguageVersion.of(17)
     }
 }
 
-repositories {
-    mavenCentral()
+allprojects {
+    group = "chat.giga"
+    version = "0.1.0"
+
+    repositories {
+        mavenCentral()
+    }
 }
 
 
