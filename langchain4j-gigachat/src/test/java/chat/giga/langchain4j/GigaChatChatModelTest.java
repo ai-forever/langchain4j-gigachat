@@ -8,6 +8,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.chat.request.ChatRequest;
+import dev.langchain4j.model.chat.request.json.JsonSchema;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -37,7 +38,11 @@ public class GigaChatChatModelTest {
                 .authClient(authClient)
                 .apiHttpClient(httpClient)
                 .apiUrl("hostTest")
-                .defaultChatRequestParameters(GigaChatChatRequestParameters.builder().build())
+                .defaultChatRequestParameters(GigaChatChatRequestParameters.builder()
+                        .temperature(1.0)
+                        .modelName(ModelName.GIGA_CHAT_PRO)
+                        .responseFormat(JsonSchema.builder().build())
+                        .build())
                 .build();
     }
 
