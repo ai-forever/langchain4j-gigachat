@@ -5,9 +5,6 @@ plugins {
     id("langchain4j-gigachat.publish")
 }
 
-group = "chat.giga"
-version = "1.0-SNAPSHOT"
-
 repositories {
     mavenCentral()
 }

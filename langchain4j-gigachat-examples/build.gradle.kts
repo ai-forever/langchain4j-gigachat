@@ -2,9 +2,6 @@ plugins {
     id("java")
 }
 
-group = "chat.giga.langchain4j"
-version = "1.0-SNAPSHOT"
-
 repositories {
     mavenCentral()
 }
