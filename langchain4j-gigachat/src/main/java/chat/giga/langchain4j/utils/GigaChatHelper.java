@@ -63,12 +63,19 @@ public class GigaChatHelper {
                     .role(ChatMessage.Role.SYSTEM)
                     .content(((SystemMessage) message).text())
                     .build();
-        } else if (message instanceof AiMessage) {
-            return chat.giga.model.completion.ChatMessage.builder()
-                    .role(ChatMessage.Role.ASSISTANT)
-                    .functionsStateId(((AiMessage) message).toolExecutionRequests().get(0).id())
-                    .content(((AiMessage) message).text())
-                    .build();
+        } else if (message instanceof AiMessage aiMessage) {
+            if (aiMessage.toolExecutionRequests() != null && !aiMessage.toolExecutionRequests().isEmpty()) {
+                return chat.giga.model.completion.ChatMessage.builder()
+                        .role(ChatMessage.Role.ASSISTANT)
+                        .functionsStateId(aiMessage.toolExecutionRequests().get(0).id())
+                        .content(aiMessage.text())
+                        .build();
+            } else {
+                return chat.giga.model.completion.ChatMessage.builder()
+                        .role(ChatMessage.Role.ASSISTANT)
+                        .content(aiMessage.text())
+                        .build();
+            }
         } else if (message instanceof ToolExecutionResultMessage) {
             return chat.giga.model.completion.ChatMessage.builder()
                     .role(ChatMessage.Role.FUNCTION)
