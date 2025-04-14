@@ -50,29 +50,31 @@ public class GigaChatHelper {
     }
 
     private static chat.giga.model.completion.ChatMessage convertMessage(dev.langchain4j.data.message.ChatMessage message, GigaChatChatRequestParameters parameters) {
-        if (message instanceof UserMessage) {
+        if (message instanceof UserMessage userMessage) {
             return chat.giga.model.completion.ChatMessage.builder()
                     .role(ChatMessage.Role.USER)
-                    .content(((UserMessage) message).contents().stream()
+                    .content(userMessage.contents().stream()
                             .map(content -> content instanceof TextContent ? ((TextContent) content).text() : null)
                             .toList().get(0))
                     .attachments(getOrDefault(parameters.getAttachments(), List.of()))
                     .build();
-        } else if (message instanceof SystemMessage) {
+        } else if (message instanceof SystemMessage systemMessage) {
             return chat.giga.model.completion.ChatMessage.builder()
                     .role(ChatMessage.Role.SYSTEM)
-                    .content(((SystemMessage) message).text())
+                    .content(systemMessage.text())
                     .build();
-        } else if (message instanceof AiMessage) {
+        } else if (message instanceof AiMessage aiMessage) {
+            var id = aiMessage.toolExecutionRequests() != null ?
+            aiMessage.toolExecutionRequests().get(0).id() : null;
             return chat.giga.model.completion.ChatMessage.builder()
                     .role(ChatMessage.Role.ASSISTANT)
-                    .functionsStateId(((AiMessage) message).toolExecutionRequests().get(0).id())
-                    .content(((AiMessage) message).text())
+                    .functionsStateId(id)
+                    .content(aiMessage.text())
                     .build();
-        } else if (message instanceof ToolExecutionResultMessage) {
+        } else if (message instanceof ToolExecutionResultMessage toolExecutionResultMessage) {
             return chat.giga.model.completion.ChatMessage.builder()
                     .role(ChatMessage.Role.FUNCTION)
-                    .content(((ToolExecutionResultMessage) message).text())
+                    .content(toolExecutionResultMessage.text())
                     .build();
         } else {
             throw new IllegalArgumentException("Unsupported message type: " + message.getClass().getName());
