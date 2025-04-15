@@ -15,7 +15,6 @@ import dev.langchain4j.model.chat.response.ChatResponse;
 import lombok.Builder;
 
 import java.util.List;
-import java.util.Objects;
 
 import static chat.giga.langchain4j.utils.GigaChatHelper.toRequest;
 import static chat.giga.langchain4j.utils.GigaChatHelper.toResponse;
@@ -75,8 +74,6 @@ public class GigaChatChatModel implements ChatLanguageModel, TokenCountEstimator
         } else {
             gigaChatParameters = GigaChatChatRequestParameters.builder().build();
         }
-
-        Objects.requireNonNull(commonParameters.modelName(), "Model name must not be null");
 
         this.defaultChatRequestParameters = GigaChatChatRequestParameters.builder()
                 // default

@@ -3,6 +3,7 @@ package chat.giga.langchain4j;
 import chat.giga.client.GigaChatClient;
 import chat.giga.client.auth.AuthClient;
 import chat.giga.http.client.HttpClient;
+import chat.giga.model.ModelName;
 import chat.giga.model.embedding.EmbeddingRequest;
 import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.segment.TextSegment;
@@ -47,7 +48,7 @@ public class GigaChatEmbeddingModel extends DimensionAwareEmbeddingModel {
                 .logResponses(logResponses)
                 .verifySslCerts(verifySslCerts)
                 .build();
-        this.modelName = getOrDefault(modelName, "Embeddings");
+        this.modelName = getOrDefault(modelName, ModelName.EMBEDDINGS);
         this.batchSize = getOrDefault(batchSize, 16);
     }
 

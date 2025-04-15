@@ -21,7 +21,6 @@ import lombok.Builder;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 
 import static chat.giga.langchain4j.utils.GigaChatHelper.finishReasonFrom;
 import static chat.giga.langchain4j.utils.GigaChatHelper.toRequest;
@@ -75,8 +74,6 @@ public class GigaChatStreamingChatModel implements StreamingChatLanguageModel {
         } else {
             gigaChatParameters = GigaChatChatRequestParameters.builder().build();
         }
-        Objects.requireNonNull(commonParameters.modelName(), "Model name must not be null");
-
         this.defaultChatRequestParameters = GigaChatChatRequestParameters.builder()
                 // default
                 .modelName(commonParameters.modelName())
