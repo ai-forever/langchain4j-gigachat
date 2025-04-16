@@ -19,8 +19,7 @@ public class GigaChatStreamingChatModelExample {
                     .authClient(AuthClient.builder()
                             .withOAuth(AuthClientBuilder.OAuthBuilder.builder()
                                     .scope(Scope.GIGACHAT_API_PERS)
-                                    .clientId("clientId")
-                                    .clientSecret("clientSecret")
+                                    .authKey("key")
                                     .build())
                             .build())
                     .defaultChatRequestParameters(GigaChatChatRequestParameters.builder()
@@ -51,7 +50,8 @@ public class GigaChatStreamingChatModelExample {
                 }
             });
         } catch (HttpClientException ex) {
-            System.out.println(ex.statusCode() + ex.bodyAsString());
+            System.out.println("code: " + ex.statusCode() + " response:" + ex.bodyAsString());
+        } catch (Exception ex) {
             ex.printStackTrace();
         }
 

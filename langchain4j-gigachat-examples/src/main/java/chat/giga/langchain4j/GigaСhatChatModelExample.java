@@ -1,40 +1,31 @@
 package chat.giga.langchain4j;
 
 import chat.giga.client.auth.AuthClient;
-import chat.giga.http.client.JdkHttpClientBuilder;
-import chat.giga.http.client.SSL;
+import chat.giga.client.auth.AuthClientBuilder;
+import chat.giga.http.client.HttpClientException;
 import chat.giga.model.ModelName;
-import dev.langchain4j.data.message.UserMessage;
-import dev.langchain4j.model.chat.request.ChatRequest;
-import dev.langchain4j.model.chat.request.DefaultChatRequestParameters;
-
-import java.net.http.HttpClient;
+import chat.giga.model.Scope;
 
 public class GigaСhatChatModelExample {
 
     public static void main(String[] args) {
         try {
             GigaChatChatModel model = GigaChatChatModel.builder()
+                    .defaultChatRequestParameters(GigaChatChatRequestParameters.builder()
+                            .modelName(ModelName.GIGA_CHAT_PRO)
+                            .build())
                     .authClient(AuthClient.builder()
-                            .withCertificatesAuth(new JdkHttpClientBuilder()
-                                    .httpClientBuilder(HttpClient.newBuilder())
-                                    .ssl(SSL.builder()
-                                            .truststorePassword("pass")
-                                            .trustStoreType("PKCS12")
-                                            .truststorePath("/Users/user/ssl/client_truststore.p12")
-                                            .keystorePassword("pass")
-                                            .keystoreType("PKCS12")
-                                            .keystorePath("/Users/user/ssl/client_keystore.p12")
-                                            .build())
+                            .withOAuth(AuthClientBuilder.OAuthBuilder.builder()
+                                    .scope(Scope.GIGACHAT_API_PERS)
+                                    .authKey("testkey")
                                     .build())
                             .build())
-                    .verifySslCerts(false)
                     .logRequests(true)
                     .logResponses(true)
-                    .apiUrl("host1")
                     .build();
-            model.chat(ChatRequest.builder().messages(new UserMessage("как дела"))
-                    .parameters(DefaultChatRequestParameters.builder().modelName(ModelName.GIGA_CHAT_PRO).build()).build());
+            model.chat("как дела");
+        } catch (HttpClientException ex) {
+            System.out.println("code: " + ex.statusCode() + " response:" + ex.bodyAsString());
         } catch (Exception ex) {
             ex.printStackTrace();
         }
