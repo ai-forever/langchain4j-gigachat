@@ -24,14 +24,14 @@ public class GigaChatEmbeddingModelExample {
                                             .build())
                                     .build())
                             .build())
-                    .verifySslCerts(false)
                     .logRequests(true)
                     .logResponses(true)
-                    .apiUrl("host")
+                    .apiUrl("https://host")
                     .build();
             System.out.println(model.embed("тест"));
         } catch (HttpClientException ex) {
-            System.out.println(ex.statusCode() + ex.bodyAsString());
+            System.out.println("code: " + ex.statusCode() + " response:" + ex.bodyAsString());
+        } catch (Exception ex) {
             ex.printStackTrace();
         }
     }

@@ -2,6 +2,7 @@ package chat.giga.langchain4j;
 
 import chat.giga.client.auth.AuthClient;
 import chat.giga.client.auth.AuthClientBuilder;
+import chat.giga.http.client.HttpClientException;
 import chat.giga.model.ModelName;
 import chat.giga.model.Scope;
 import chat.giga.model.completion.ChatFunctionCallEnum;
@@ -18,13 +19,14 @@ public class GigaСhatChatAiServicesExample {
                     .authClient(AuthClient.builder()
                             .withOAuth(AuthClientBuilder.OAuthBuilder.builder()
                                     .scope(Scope.GIGACHAT_API_PERS)
-                                    .clientId("testClientId")
-                                    .clientSecret("testClientSecret")
+                                    .authKey("key")
                                     .build())
                             .build())
                     .defaultChatRequestParameters(GigaChatChatRequestParameters.builder()
                             .modelName(ModelName.GIGA_CHAT_PRO)
-                            .responseFormat(JsonSchema.builder().rootElement(new JsonStringSchema()).build())
+                            .responseFormat(JsonSchema.builder()
+                                    .rootElement(new JsonStringSchema())
+                                    .build())
                             .functionCall(ChatFunctionCallEnum.AUTO)
                             .updateInterval(2)
                             .profanityCheck(false)
@@ -32,10 +34,8 @@ public class GigaСhatChatAiServicesExample {
                             .stream(false)
                             .temperature(1.0)
                             .build())
-                    .verifySslCerts(false)
                     .logRequests(true)
                     .logResponses(true)
-                    .apiUrl("testApiUrl")
                     .build();
             var calculator = AiServices.builder(Assistant.class)
                     .chatLanguageModel(model)
@@ -45,13 +45,14 @@ public class GigaСhatChatAiServicesExample {
             double number = 16;
             String result = calculator.chat("Квадратный корень из " + number);
             System.out.println(result);
+        } catch (HttpClientException ex) {
+            System.out.println("code: " + ex.statusCode() + " response:" + ex.bodyAsString());
         } catch (Exception ex) {
             ex.printStackTrace();
         }
     }
 
     interface Assistant {
-
         String chat(String message);
     }
 
