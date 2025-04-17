@@ -1,6 +1,7 @@
 package chat.giga.langchain4j;
 
 import chat.giga.client.auth.AuthClient;
+import chat.giga.http.client.HttpClient;
 import chat.giga.http.client.HttpClientException;
 import chat.giga.http.client.HttpResponse;
 import chat.giga.util.JsonUtils;
@@ -22,7 +23,7 @@ import static org.mockito.Mockito.when;
 public class GigaChatEmbeddingModelTest {
 
     @Mock
-    chat.giga.http.client.HttpClient httpClient;
+    HttpClient httpClient;
     @Mock
     AuthClient authClient;
 

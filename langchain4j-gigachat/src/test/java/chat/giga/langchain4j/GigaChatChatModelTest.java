@@ -1,6 +1,7 @@
 package chat.giga.langchain4j;
 
 import chat.giga.client.auth.AuthClient;
+import chat.giga.http.client.HttpClient;
 import chat.giga.http.client.HttpResponse;
 import chat.giga.model.ModelName;
 import chat.giga.util.JsonUtils;
@@ -24,7 +25,7 @@ import static org.mockito.Mockito.when;
 public class GigaChatChatModelTest {
 
     @Mock
-    chat.giga.http.client.HttpClient httpClient;
+    HttpClient httpClient;
     @Mock
     AuthClient authClient;
 
@@ -48,7 +49,7 @@ public class GigaChatChatModelTest {
 
     @Test
     void chat() throws JsonProcessingException {
-        var body = TestData.completionChatResponse();
+        var body = TestData.completionResponse();
 
         when(httpClient.execute(any()))
                 .thenReturn(HttpResponse.builder()

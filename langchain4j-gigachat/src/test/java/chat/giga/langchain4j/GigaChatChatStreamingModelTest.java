@@ -1,6 +1,7 @@
 package chat.giga.langchain4j;
 
 import chat.giga.client.auth.AuthClient;
+import chat.giga.http.client.HttpClient;
 import chat.giga.http.client.HttpClientException;
 import chat.giga.http.client.sse.SseListener;
 import chat.giga.model.ModelName;
@@ -30,7 +31,7 @@ import static org.mockito.Mockito.verify;
 public class GigaChatChatStreamingModelTest {
 
     @Mock
-    chat.giga.http.client.HttpClient httpClient;
+    HttpClient httpClient;
     @Mock
     AuthClient authClient;
 

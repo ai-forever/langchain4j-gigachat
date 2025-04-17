@@ -2,6 +2,7 @@ package chat.giga.langchain4j;
 
 import dev.langchain4j.model.chat.request.ChatRequestParameters;
 import dev.langchain4j.model.chat.request.DefaultChatRequestParameters;
+import lombok.Builder.Default;
 import lombok.Getter;
 
 import java.util.List;
@@ -31,8 +32,10 @@ public class GigaChatChatRequestParameters extends DefaultChatRequestParameters 
     public static class GigaChatBuilder extends Builder<GigaChatBuilder> {
 
         private Integer updateInterval;
-        private Boolean stream;
-        private Boolean profanityCheck;
+        @Default
+        private Boolean stream = false;
+        @Default
+        private Boolean profanityCheck = false;
         private Object functionCall;
         private List<String> attachments;
         private Float repetitionPenalty;

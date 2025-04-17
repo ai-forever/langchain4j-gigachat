@@ -10,7 +10,7 @@ import chat.giga.model.completion.ChoiceMessageFunctionCall;
 import chat.giga.model.completion.CompletionRequest;
 import chat.giga.model.completion.CompletionResponse;
 import chat.giga.model.completion.Usage;
-import chat.giga.util.JsonUtils;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.data.message.AiMessage;
@@ -19,7 +19,6 @@ import dev.langchain4j.data.message.TextContent;
 import dev.langchain4j.data.message.ToolExecutionResultMessage;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.chat.request.ChatRequest;
-import dev.langchain4j.model.chat.request.ChatRequestParameters;
 import dev.langchain4j.model.chat.request.json.JsonIntegerSchema;
 import dev.langchain4j.model.chat.request.json.JsonNumberSchema;
 import dev.langchain4j.model.chat.request.json.JsonObjectSchema;
@@ -49,7 +48,7 @@ public class GigaChatHelper {
                 .collect(Collectors.toList());
     }
 
-    private static chat.giga.model.completion.ChatMessage convertMessage(dev.langchain4j.data.message.ChatMessage message, GigaChatChatRequestParameters parameters) {
+    private static ChatMessage convertMessage(dev.langchain4j.data.message.ChatMessage message, GigaChatChatRequestParameters parameters) {
         if (message instanceof UserMessage userMessage) {
             return chat.giga.model.completion.ChatMessage.builder()
                     .role(ChatMessage.Role.USER)
@@ -65,7 +64,7 @@ public class GigaChatHelper {
                     .build();
         } else if (message instanceof AiMessage aiMessage) {
             var id = aiMessage.toolExecutionRequests() != null ?
-            aiMessage.toolExecutionRequests().get(0).id() : null;
+                    aiMessage.toolExecutionRequests().get(0).id() : null;
             return chat.giga.model.completion.ChatMessage.builder()
                     .role(ChatMessage.Role.ASSISTANT)
                     .functionsStateId(id)
@@ -91,26 +90,26 @@ public class GigaChatHelper {
 
     private static ChatFunctionParametersProperty convertToChatFunctionParametersProperty(JsonSchemaElement schemaElement) {
         var type = "string";
-        if (schemaElement instanceof JsonObjectSchema) {
+        if (schemaElement instanceof JsonObjectSchema jsonObjectSchema) {
             return ChatFunctionParametersProperty.builder()
                     .type("object")
-                    .properties(convertParameters(((JsonObjectSchema) schemaElement).properties()))
+                    .properties(convertParameters(jsonObjectSchema.properties()))
                     .description(((JsonObjectSchema) schemaElement).description())
                     .build();
-        } else if (schemaElement instanceof JsonStringSchema) {
+        } else if (schemaElement instanceof JsonStringSchema jsonStringSchema) {
             return ChatFunctionParametersProperty.builder()
                     .type(type)
-                    .description(((JsonStringSchema) schemaElement).description())
+                    .description(jsonStringSchema.description())
                     .build();
-        } else if ((schemaElement instanceof JsonIntegerSchema)) {
+        } else if (schemaElement instanceof JsonIntegerSchema jsonIntegerSchema) {
             return ChatFunctionParametersProperty.builder()
                     .type(type)
-                    .description(((JsonIntegerSchema) schemaElement).description())
+                    .description(jsonIntegerSchema.description())
                     .build();
-        } else if ((schemaElement instanceof JsonNumberSchema)) {
+        } else if (schemaElement instanceof JsonNumberSchema jsonNumberSchema) {
             return ChatFunctionParametersProperty.builder()
                     .type(type)
-                    .description(((JsonNumberSchema) schemaElement).description())
+                    .description(jsonNumberSchema.description())
                     .build();
         }
         return ChatFunctionParametersProperty.builder().build();
@@ -162,11 +161,13 @@ public class GigaChatHelper {
         if (choice.delta().functionsStateId() != null) {
             functionId = choice.delta().functionsStateId();
         }
-        if (function.name() != null) {
-            functionName = function.name();
-        }
-        if (function.arguments() != null && !function.arguments().isEmpty()) {
-            functionArguments = toArgumentsString(function);
+        if (function != null) {
+            if (function.name() != null) {
+                functionName = function.name();
+            }
+            if (function.arguments() != null && !function.arguments().isEmpty()) {
+                functionArguments = toArgumentsString(function);
+            }
         }
 
         return ToolExecutionRequest.builder()
@@ -188,18 +189,21 @@ public class GigaChatHelper {
     }
 
     public static CompletionRequest toRequest(ChatRequest chatRequest) {
-        var parameters = (GigaChatChatRequestParameters) chatRequest.parameters();
+        GigaChatChatRequestParameters parameters = null;
+        if (chatRequest.parameters() instanceof GigaChatChatRequestParameters gigaChatParameters) {
+            parameters = gigaChatParameters;
+        }
         return CompletionRequest.builder()
                 .model(chatRequest.parameters().modelName())
                 .messages(convertChatMessages(chatRequest.messages(), parameters))
                 .temperature(chatRequest.parameters().temperature() != null ? chatRequest.parameters().temperature().floatValue() : null)
                 .topP(chatRequest.parameters().topP() != null ? chatRequest.parameters().topP().floatValue() : null)
                 .maxTokens(chatRequest.parameters().maxOutputTokens())
-                .repetitionPenalty(parameters.getRepetitionPenalty())
-                .profanityCheck(parameters.getProfanityCheck())
-                .stream(parameters.getStream())
-                .updateInterval(parameters.getUpdateInterval())
-                .functionCall(parameters.getFunctionCall())
+                .repetitionPenalty(parameters != null ? parameters.getRepetitionPenalty() : null)
+                .profanityCheck(parameters != null ? parameters.getProfanityCheck() : null)
+                .stream(parameters != null ? parameters.getStream() : null)
+                .updateInterval(parameters != null ? parameters.getUpdateInterval() : null)
+                .functionCall(parameters != null ? parameters.getFunctionCall() : null)
                 .functions(chatRequest.toolSpecifications() != null ? (
                                 chatRequest.toolSpecifications()
                                         .stream()

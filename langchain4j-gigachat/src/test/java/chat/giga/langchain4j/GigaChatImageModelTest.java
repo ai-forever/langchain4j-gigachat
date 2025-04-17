@@ -1,6 +1,7 @@
 package chat.giga.langchain4j;
 
 import chat.giga.client.auth.AuthClient;
+import chat.giga.http.client.HttpClient;
 import chat.giga.http.client.HttpResponse;
 import chat.giga.model.ModelName;
 import chat.giga.model.completion.Choice;
@@ -31,7 +32,7 @@ import static org.mockito.Mockito.when;
 public class GigaChatImageModelTest {
 
     @Mock
-    chat.giga.http.client.HttpClient httpClient;
+    HttpClient httpClient;
     @Mock
     AuthClient authClient;
 
