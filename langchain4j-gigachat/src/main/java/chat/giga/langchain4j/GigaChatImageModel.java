@@ -53,6 +53,7 @@ public class GigaChatImageModel implements ImageModel {
                 .listeners(listeners)
                 .tokenizer(tokenizer)
                 .defaultChatRequestParameters(defaultChatRequestParameters)
+                .maxRetries(maxRetries)
                 .build();
 
         this.client = GigaChatClient.builder()
@@ -76,8 +77,8 @@ public class GigaChatImageModel implements ImageModel {
                 .messages(UserMessage.from(userMessage))
                 .build());
 
-        var completionsResponse = response.aiMessage().text();
-        if (completionsResponse != null) {
+        if (response != null && response.aiMessage() != null) {
+            var completionsResponse = response.aiMessage().text();
             if (completionsResponse.contains("img src=")) {
 
                 var fileId = completionsResponse.split("\"")[1];
