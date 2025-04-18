@@ -19,7 +19,7 @@ import dev.langchain4j.model.chat.request.ChatRequest;
 import java.util.Collections;
 import java.util.List;
 
-import static chat.giga.model.completion.MessageRole.ASSISTANT;
+import static chat.giga.model.completion.ChatMessageRole.ASSISTANT;
 
 public class TestData {
 
