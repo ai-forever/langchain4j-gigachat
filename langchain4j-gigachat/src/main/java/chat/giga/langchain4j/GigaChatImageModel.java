@@ -77,7 +77,7 @@ public class GigaChatImageModel implements ImageModel {
                 .messages(UserMessage.from(userMessage))
                 .build());
 
-        if (response != null && response.aiMessage() != null) {
+        if (response != null && response.aiMessage() != null && response.aiMessage().text() != null) {
             var completionsResponse = response.aiMessage().text();
             if (completionsResponse.contains("img src=")) {
 

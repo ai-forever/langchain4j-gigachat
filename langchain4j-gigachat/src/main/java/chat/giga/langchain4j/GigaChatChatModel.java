@@ -95,12 +95,13 @@ public class GigaChatChatModel implements ChatLanguageModel, TokenCountEstimator
                 .functionCall(getOrDefault(gigaChatParameters.getFunctionCall(), ChatFunctionCallEnum.AUTO))
                 .attachments(gigaChatParameters.getAttachments())
                 .repetitionPenalty(gigaChatParameters.getRepetitionPenalty())
+                .sessionId(gigaChatParameters.getSessionId())
                 .build();
     }
 
     @Override
     public ChatResponse doChat(ChatRequest chatRequest) {
-        return toResponse(withRetry(() -> client.completions(toRequest(chatRequest)), maxRetries));
+        return toResponse(withRetry(() -> client.completions(toRequest(chatRequest), defaultChatRequestParameters.getSessionId()), maxRetries));
     }
 
     @Override

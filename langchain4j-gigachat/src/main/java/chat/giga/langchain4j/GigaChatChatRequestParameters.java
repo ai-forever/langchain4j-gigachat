@@ -2,7 +2,6 @@ package chat.giga.langchain4j;
 
 import dev.langchain4j.model.chat.request.ChatRequestParameters;
 import dev.langchain4j.model.chat.request.DefaultChatRequestParameters;
-import lombok.Builder.Default;
 import lombok.Getter;
 
 import java.util.List;
@@ -18,6 +17,7 @@ public class GigaChatChatRequestParameters extends DefaultChatRequestParameters 
     private final Object functionCall;
     private final List<String> attachments;
     private final Float repetitionPenalty;
+    private final String sessionId;
 
     private GigaChatChatRequestParameters(GigaChatBuilder builder) {
         super(builder);
@@ -27,18 +27,18 @@ public class GigaChatChatRequestParameters extends DefaultChatRequestParameters 
         this.functionCall = builder.functionCall;
         this.attachments = builder.attachments;
         this.repetitionPenalty = builder.repetitionPenalty;
+        this.sessionId = builder.sessionId;
     }
 
     public static class GigaChatBuilder extends Builder<GigaChatBuilder> {
 
         private Integer updateInterval;
-        @Default
         private Boolean stream = false;
-        @Default
         private Boolean profanityCheck = false;
         private Object functionCall;
         private List<String> attachments;
         private Float repetitionPenalty;
+        private String sessionId;
 
         public GigaChatBuilder updateInterval(Integer updateInterval) {
             this.updateInterval = updateInterval;
@@ -67,6 +67,11 @@ public class GigaChatChatRequestParameters extends DefaultChatRequestParameters 
             return this;
         }
 
+        public GigaChatBuilder sessionId(String sessionId) {
+            this.sessionId = sessionId;
+            return this;
+        }
+
         @Override
         public GigaChatChatRequestParameters build() {
             return new GigaChatChatRequestParameters(this);
@@ -82,6 +87,7 @@ public class GigaChatChatRequestParameters extends DefaultChatRequestParameters 
                 attachments(getOrDefault(chatChatRequestParameters.getAttachments(), attachments));
                 stream(getOrDefault(chatChatRequestParameters.getStream(), stream));
                 repetitionPenalty(getOrDefault(chatChatRequestParameters.getRepetitionPenalty(), repetitionPenalty));
+                sessionId(getOrDefault(chatChatRequestParameters.getSessionId(), sessionId));
             }
             return this;
         }

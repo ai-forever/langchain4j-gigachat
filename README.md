@@ -21,7 +21,7 @@ langchain4j-gigachat это имплементация [GigaChat](https://develo
 ### Gradle
 
 ```kotlin
-implementation("chat.giga:langchain4j-gigachat:0.1.3")
+implementation("chat.giga:langchain4j-gigachat:0.1.4")
 ```
 
 ### Maven
@@ -31,6 +31,6 @@ implementation("chat.giga:langchain4j-gigachat:0.1.3")
 <dependency>
     <groupId>chat.giga</groupId>
     <artifactId>langchain4j-gigachat</artifactId>
-    <version>0.1.3</version>
+    <version>0.1.4</version>
 </dependency>
 ```
