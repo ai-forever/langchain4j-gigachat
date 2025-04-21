@@ -5,12 +5,12 @@ import chat.giga.model.completion.ChatFunction;
 import chat.giga.model.completion.ChatFunctionParameters;
 import chat.giga.model.completion.ChatFunctionParametersProperty;
 import chat.giga.model.completion.ChatMessage;
+import chat.giga.model.completion.ChatMessageRole;
 import chat.giga.model.completion.ChoiceChunk;
 import chat.giga.model.completion.ChoiceMessageFunctionCall;
 import chat.giga.model.completion.CompletionRequest;
 import chat.giga.model.completion.CompletionResponse;
 import chat.giga.model.completion.Usage;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.data.message.AiMessage;
@@ -51,7 +51,7 @@ public class GigaChatHelper {
     private static ChatMessage convertMessage(dev.langchain4j.data.message.ChatMessage message, GigaChatChatRequestParameters parameters) {
         if (message instanceof UserMessage userMessage) {
             return chat.giga.model.completion.ChatMessage.builder()
-                    .role(ChatMessage.Role.USER)
+                    .role(ChatMessageRole.USER)
                     .content(userMessage.contents().stream()
                             .map(content -> content instanceof TextContent ? ((TextContent) content).text() : null)
                             .toList().get(0))
@@ -59,20 +59,20 @@ public class GigaChatHelper {
                     .build();
         } else if (message instanceof SystemMessage systemMessage) {
             return chat.giga.model.completion.ChatMessage.builder()
-                    .role(ChatMessage.Role.SYSTEM)
+                    .role(ChatMessageRole.SYSTEM)
                     .content(systemMessage.text())
                     .build();
         } else if (message instanceof AiMessage aiMessage) {
             var id = aiMessage.toolExecutionRequests() != null ?
                     aiMessage.toolExecutionRequests().get(0).id() : null;
             return chat.giga.model.completion.ChatMessage.builder()
-                    .role(ChatMessage.Role.ASSISTANT)
+                    .role(ChatMessageRole.ASSISTANT)
                     .functionsStateId(id)
                     .content(aiMessage.text())
                     .build();
         } else if (message instanceof ToolExecutionResultMessage toolExecutionResultMessage) {
             return chat.giga.model.completion.ChatMessage.builder()
-                    .role(ChatMessage.Role.FUNCTION)
+                    .role(ChatMessageRole.FUNCTION)
                     .content(toolExecutionResultMessage.text())
                     .build();
         } else {
