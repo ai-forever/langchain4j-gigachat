@@ -1,5 +1,26 @@
 # Примеры работы с LangChain4j GigaChat в Spring Boot Framework
 
+## Установка
+
+Чтобы установить библиотеку, подключите ее в зависимости.
+
+### Gradle
+
+```kotlin
+implementation("chat.giga:langchain4j-gigachat-spring-boot-starter:0.1.4")
+```
+
+### Maven
+
+```xml
+
+<dependency>
+    <groupId>chat.giga</groupId>
+    <artifactId>langchain4j-gigachat-spring-boot-starter</artifactId>
+    <version>0.1.4</version>
+</dependency>
+```
+
 Вы можете сконфигурировать модель в application.properties файле таким способом:
 
 ```properties
@@ -29,6 +50,13 @@ public class ChatController {
     }
 }
 ```
+
+Поддержаны все основные модели, названия property:
+
+- chat-model
+- streaming-chat-model
+- embedding-model
+- image-model
 
 Еще документация по Spring Boot [тут](https://docs.langchain4j.dev/tutorials/spring-boot-integration/)
 
