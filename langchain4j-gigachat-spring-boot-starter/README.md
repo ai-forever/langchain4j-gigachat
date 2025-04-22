@@ -1,0 +1,34 @@
+# Примеры работы с LangChain4j GigaChat в Spring Boot Framework
+
+Вы можете сконфигурировать модель в application.properties файле таким способом:
+
+```properties
+langchain4j.gigachat.chat-model.model-name=GigaChat-Max
+langchain4j.gigachat.chat-model.auth.type=OAUH
+langchain4j.gigachat.chat-model.auth.auth-key=your-key
+langchain4j.gigachat.chat-model.auth.scope=GIGACHAT_API_PERS
+langchain4j.gigachat.chat-model.log-requests=true
+```
+
+В таком случае сущность GigaChatChatModel будет автоматически создана и вы сможете заинжектить ее, где это необходимо
+
+```java
+
+@RestController
+public class ChatController {
+
+    ChatLanguageModel chatLanguageModel;
+
+    public ChatController(ChatLanguageModel chatLanguageModel) {
+        this.chatLanguageModel = chatLanguageModel;
+    }
+
+    @GetMapping("/chat")
+    public String model(@RequestParam(value = "message", defaultValue = "Hello") String message) {
+        return chatLanguageModel.chat(message);
+    }
+}
+```
+
+Еще документация по Spring Boot [тут](https://docs.langchain4j.dev/tutorials/spring-boot-integration/)
+
