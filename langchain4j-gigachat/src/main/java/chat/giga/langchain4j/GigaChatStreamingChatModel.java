@@ -91,7 +91,7 @@ public class GigaChatStreamingChatModel implements StreamingChatLanguageModel {
                 .updateInterval(getOrDefault(gigaChatParameters.getUpdateInterval(), 0))
                 .stream(true)
                 .profanityCheck(getOrDefault(gigaChatParameters.getProfanityCheck(), false))
-                .functionCall(getOrDefault(gigaChatParameters.getFunctionCall(), ChatFunctionCallEnum.AUTO))
+                .functionCall(gigaChatParameters.getFunctionCall())
                 .attachments(gigaChatParameters.getAttachments())
                 .repetitionPenalty(gigaChatParameters.getRepetitionPenalty())
                 .build();

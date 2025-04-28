@@ -92,7 +92,7 @@ public class GigaChatChatModel implements ChatLanguageModel, TokenCountEstimator
                 .updateInterval(getOrDefault(gigaChatParameters.getUpdateInterval(), 0))
                 .stream(false)
                 .profanityCheck(getOrDefault(gigaChatParameters.getProfanityCheck(), false))
-                .functionCall(getOrDefault(gigaChatParameters.getFunctionCall(), ChatFunctionCallEnum.AUTO))
+                .functionCall(gigaChatParameters.getFunctionCall())
                 .attachments(gigaChatParameters.getAttachments())
                 .repetitionPenalty(gigaChatParameters.getRepetitionPenalty())
                 .sessionId(gigaChatParameters.getSessionId())
