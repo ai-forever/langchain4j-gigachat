@@ -155,9 +155,8 @@ class GigaChatHelperTest {
                         .build())
                 .parameters(null).build();
         CompletionRequest request = GigaChatHelper.toRequest(chatRequest);
-        assertThat(request.functions().get(0).parameters().properties()).satisfies(cr -> {
-            assertThat(cr.get("key").type()).isEqualTo("object");
-        });
+        assertThat(request.functions().get(0).parameters().properties()).satisfies(
+                cr -> assertThat(cr.get("key").type()).isEqualTo("object"));
     }
 
     @Test
@@ -190,16 +189,15 @@ class GigaChatHelperTest {
                         .build())
                 .parameters(null).build();
         CompletionRequest request = GigaChatHelper.toRequest(chatRequest);
-        assertThat(request.functions().get(0).parameters().properties()).satisfies(cr -> {
-            assertThat(cr.get("key").type()).isEqualTo("string");
-        });
+        assertThat(request.functions().get(0).parameters().properties()).satisfies(
+                cr -> assertThat(cr.get("key").type()).isEqualTo("string"));
     }
 
     @Test
     void testToRequestWithNullParametersToolExecutionRequest() {
         var chatRequest = chatRequest()
                 .toolSpecifications(ToolSpecification.builder()
-                        .parameters(JsonObjectSchema.builder().build())
+                        .parameters(null)
                         .name("test")
                         .build())
                 .parameters(null).build();

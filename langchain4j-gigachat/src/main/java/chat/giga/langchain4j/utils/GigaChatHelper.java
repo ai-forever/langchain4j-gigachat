@@ -42,6 +42,8 @@ import static dev.langchain4j.model.output.FinishReason.TOOL_EXECUTION;
 
 public class GigaChatHelper {
 
+    public static final String OBJECT_TYPE = "object";
+
     private static List<ChatMessage> convertChatMessages(List<dev.langchain4j.data.message.ChatMessage> messages, GigaChatChatRequestParameters parameters) {
         return messages.stream()
                 .map(message -> convertMessage(message, parameters))
@@ -92,9 +94,9 @@ public class GigaChatHelper {
         var type = "string";
         if (schemaElement instanceof JsonObjectSchema jsonObjectSchema) {
             return ChatFunctionParametersProperty.builder()
-                    .type("object")
+                    .type(OBJECT_TYPE)
                     .properties(convertParameters(jsonObjectSchema.properties()))
-                    .description(((JsonObjectSchema) schemaElement).description())
+                    .description(jsonObjectSchema.description())
                     .build();
         } else if (schemaElement instanceof JsonStringSchema jsonStringSchema) {
             return ChatFunctionParametersProperty.builder()
@@ -208,10 +210,19 @@ public class GigaChatHelper {
                                 chatRequest.toolSpecifications()
                                         .stream()
                                         .map(toolSpecification -> {
-                                            var chatFunctionParameters = ChatFunctionParameters.builder()
-                                                    .required(toolSpecification.parameters().required())
-                                                    .properties(convertParameters(toolSpecification.parameters().properties()))
-                                                    .build();
+                                            ChatFunctionParameters chatFunctionParameters;
+                                            if (toolSpecification.parameters() == null) {
+                                                chatFunctionParameters = ChatFunctionParameters.builder()
+                                                        .type(OBJECT_TYPE)
+                                                        .properties(Map.of())
+                                                        .build();
+                                            } else {
+                                                chatFunctionParameters = ChatFunctionParameters.builder()
+                                                        .required(toolSpecification.parameters().required())
+                                                        .properties(convertParameters(
+                                                                toolSpecification.parameters().properties()))
+                                                        .build();
+                                            }
                                             return ChatFunction.builder()
                                                     .name(toolSpecification.name())
                                                     .description(toolSpecification.description())

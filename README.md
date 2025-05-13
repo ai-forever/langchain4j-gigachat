@@ -24,7 +24,7 @@ GigaChat для LangChain4j — это Java-библиотека, которая
 ### Gradle
 
 ```kotlin
-implementation("chat.giga:langchain4j-gigachat:0.1.4")
+implementation("chat.giga:langchain4j-gigachat:0.1.5")
 ```
 
 ### Maven
@@ -34,7 +34,7 @@ implementation("chat.giga:langchain4j-gigachat:0.1.4")
 <dependency>
     <groupId>chat.giga</groupId>
     <artifactId>langchain4j-gigachat</artifactId>
-    <version>0.1.4</version>
+    <version>0.1.5</version>
 </dependency>
 ```
 
