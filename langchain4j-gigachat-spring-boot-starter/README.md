@@ -7,7 +7,7 @@
 ### Gradle
 
 ```kotlin
-implementation("chat.giga:langchain4j-gigachat-spring-boot-starter:0.1.5")
+implementation("chat.giga:langchain4j-gigachat-spring-boot-starter:0.1.6")
 ```
 
 ### Maven
@@ -17,7 +17,7 @@ implementation("chat.giga:langchain4j-gigachat-spring-boot-starter:0.1.5")
 <dependency>
     <groupId>chat.giga</groupId>
     <artifactId>langchain4j-gigachat-spring-boot-starter</artifactId>
-    <version>0.1.5</version>
+    <version>0.1.6</version>
 </dependency>
 ```
 
