@@ -1,17 +1,20 @@
-# GigaChat для LangChain4j
+# GigaChat для LangChain4j/LangGraph4j
 
-GigaChat для LangChain4j — это Java-библиотека, которая интегрирует модели GigaChat c проектом [LangChain4j](https://docs.langchain4j.dev/).
+GigaChat для LangChain4j/LangGraph4j — это Java-библиотека, которая интегрирует модели GigaChat c проектами [LangChain4j](https://docs.langchain4j.dev/) и [LangGraph4j](https://docs.langchain4j.dev/).
 Библиотека предназначена для упрощения разработки LLM-приложений на Java.
 Для обмена сообщения с моделями она использует [GigaChat Java SDK](https://github.com/ai-forever/gigachat-java/).
 Библиотека входит в состав [GigaChain](https://github.com/ai-forever/gigachain/) — набора решений для разработки LLM-приложений с помощью моделей GigaChat.
 
-## О проекте LangChain4j
+## О LangChain4j и LangGraph4j
 
 Проект LangChain4j существует с 2023 года и основывается на концептах, предложенных популярными фреймворками для разработки LLM-приложений, среди которых LangChain, Haystack, LlamaIndex.
 Он дает доступ к единообразным API, широкому набору программных инструментов и [библиотеке примеров](https://github.com/langchain4j/langchain4j-examples).
 
 > [!TIP]
 > Примеры работы с моделями GigaChat с помощью библиотеки `langchain4j-gigachat` — в папке [langchain4j-gigachat-examples](langchain4j-gigachat-examples/README.md).
+
+LangGraph4j — библиотека для разработки агентов, вдохновленная фреймворком LangGraph.
+Подробнее о [возможностях библиотеки](https://github.com/langgraph4j/langgraph4j?tab=readme-ov-file#key-capabilities-overview).
 
 ## Требования
 
@@ -101,10 +104,14 @@ GigaChatEmbeddingModel model = GigaChatEmbeddingModel.builder()
 
 ## Полезные материалы
 
-* [Официальная документация LangChain4j (англ.)](https://docs.langchain4j.dev/intro);
-* Серия обучающих статей (англ.):
-    * [Part 1: Getting Started with Generative AI using Java, LangChain4j, OpenAI and Ollama](https://www.sivalabs.in/getting-started-with-generative-ai-using-java-langchain4j-openai-ollama/)
-    * [Part 2: Generative AI Conversations using LangChain4j ChatMemory](https://www.sivalabs.in/generative-ai-conversations-using-langchain4j-chat-memory/)
-    * [Part 3: LangChain4j AiServices Tutorial](https://www.sivalabs.in/langchain4j-ai-services-tutorial/)
-    * [Part 4: LangChain4j Retrieval-Augmented Generation (RAG) Tutorial](https://www.sivalabs.in/langchain4j-retrieval-augmented-generation-tutorial/)
-* Книга [Understanding LangChain4j](https://agoncal.teachable.com/p/ebook-understanding-langchain4j) (англ.)
+Список примеров и полезных материалов на английском языке:
+
+* [Официальная документация LangChain4j](https://docs.langchain4j.dev/intro);
+* Серия обучающих статей:
+    * [Part 1: Getting Started with Generative AI using Java, LangChain4j, OpenAI and Ollama](https://www.sivalabs.in/getting-started-with-generative-ai-using-java-langchain4j-openai-ollama/);
+    * [Part 2: Generative AI Conversations using LangChain4j ChatMemory](https://www.sivalabs.in/generative-ai-conversations-using-langchain4j-chat-memory/);
+    * [Part 3: LangChain4j AiServices Tutorial](https://www.sivalabs.in/langchain4j-ai-services-tutorial/);
+    * [Part 4: LangChain4j Retrieval-Augmented Generation (RAG) Tutorial](https://www.sivalabs.in/langchain4j-retrieval-augmented-generation-tutorial/);
+* Книга [Understanding LangChain4j](https://agoncal.teachable.com/p/ebook-understanding-langchain4j);
+* [Статьи о LangGraph4j](https://github.com/langgraph4j/langgraph4j?tab=readme-ov-file#articles);
+* [Примеры разработки агентов](https://github.com/langgraph4j/langgraph4j/tree/main/how-tos) с помощью LangGraph4j.
