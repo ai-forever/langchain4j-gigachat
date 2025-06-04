@@ -1,6 +1,6 @@
 # GigaChat для LangChain4j/LangGraph4j
 
-GigaChat для LangChain4j/LangGraph4j — это Java-библиотека, которая интегрирует модели GigaChat c проектами [LangChain4j](https://docs.langchain4j.dev/) и [LangGraph4j](https://docs.langchain4j.dev/).
+GigaChat для LangChain4j/LangGraph4j — это Java-библиотека, которая интегрирует модели GigaChat c проектами [LangChain4j](https://docs.langchain4j.dev/) и [LangGraph4j](https://langgraph4j.github.io/langgraph4j/).
 Библиотека предназначена для упрощения разработки LLM-приложений на Java.
 Для обмена сообщения с моделями она использует [GigaChat Java SDK](https://github.com/ai-forever/gigachat-java/).
 Библиотека входит в состав [GigaChain](https://github.com/ai-forever/gigachain/) — набора решений для разработки LLM-приложений с помощью моделей GigaChat.
