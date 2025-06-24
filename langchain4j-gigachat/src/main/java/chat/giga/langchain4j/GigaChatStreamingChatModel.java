@@ -4,12 +4,11 @@ import chat.giga.client.GigaChatClientAsync;
 import chat.giga.client.ResponseHandler;
 import chat.giga.client.auth.AuthClient;
 import chat.giga.http.client.HttpClient;
-import chat.giga.model.completion.ChatFunctionCallEnum;
 import chat.giga.model.completion.ChoiceFinishReason;
 import chat.giga.model.completion.CompletionChunkResponse;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.data.message.AiMessage;
-import dev.langchain4j.model.chat.StreamingChatLanguageModel;
+import dev.langchain4j.model.chat.StreamingChatModel;
 import dev.langchain4j.model.chat.listener.ChatModelListener;
 import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.request.ChatRequestParameters;
@@ -33,7 +32,7 @@ import static dev.langchain4j.internal.Utils.getOrDefault;
  * результат должен быть обработан с помощью {@link StreamingChatResponseHandler}.
  * <p> Описание параметров можно найти  <a href="https://developers.sber.ru/docs/ru/gigachat/guides/response-token-streaming">тут</a>
  */
-public class GigaChatStreamingChatModel implements StreamingChatLanguageModel {
+public class GigaChatStreamingChatModel implements StreamingChatModel {
 
     private final GigaChatClientAsync asyncClient;
     private final List<ChatModelListener> listeners;

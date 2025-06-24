@@ -5,7 +5,6 @@ import chat.giga.client.auth.AuthClient;
 import chat.giga.http.client.HttpClient;
 import dev.langchain4j.data.image.Image;
 import dev.langchain4j.data.message.UserMessage;
-import dev.langchain4j.model.Tokenizer;
 import dev.langchain4j.model.chat.listener.ChatModelListener;
 import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.image.ImageModel;
@@ -37,7 +36,6 @@ public class GigaChatImageModel implements ImageModel {
                               boolean logRequests,
                               boolean logResponses,
                               boolean verifySslCerts,
-                              Tokenizer tokenizer,
                               Integer maxRetries,
                               List<ChatModelListener> listeners,
             GigaChatChatRequestParameters defaultChatRequestParameters) {
@@ -51,7 +49,6 @@ public class GigaChatImageModel implements ImageModel {
                 .logResponses(logResponses)
                 .verifySslCerts(verifySslCerts)
                 .listeners(listeners)
-                .tokenizer(tokenizer)
                 .defaultChatRequestParameters(defaultChatRequestParameters)
                 .maxRetries(maxRetries)
                 .build();

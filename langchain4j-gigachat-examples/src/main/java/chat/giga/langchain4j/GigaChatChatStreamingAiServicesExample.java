@@ -34,7 +34,7 @@ public class GigaChatChatStreamingAiServicesExample {
                     .logResponses(true)
                     .build();
             var calculator = AiServices.builder(Assistant.class)
-                    .streamingChatLanguageModel(model)
+                    .streamingChatModel(model)
                     .tools(new GigaChatChatStreamingAiServicesExample.Calculator())
                     .build();
 

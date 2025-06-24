@@ -43,7 +43,7 @@ public class SmsSenderAgentExample {
                 .build();
 
         Assistant assistant = AiServices.builder(Assistant.class)
-                .chatLanguageModel(model)
+                .chatModel(model)
                 .moderationModel(new DisabledModerationModel())
                 .chatMemory(chatMemory)
                 .tools(new SMSSender())

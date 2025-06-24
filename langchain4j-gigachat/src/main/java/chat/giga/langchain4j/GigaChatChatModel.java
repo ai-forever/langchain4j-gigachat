@@ -3,10 +3,7 @@ package chat.giga.langchain4j;
 import chat.giga.client.GigaChatClient;
 import chat.giga.client.auth.AuthClient;
 import chat.giga.http.client.HttpClient;
-import chat.giga.model.completion.ChatFunctionCallEnum;
-import dev.langchain4j.model.Tokenizer;
-import dev.langchain4j.model.chat.ChatLanguageModel;
-import dev.langchain4j.model.chat.TokenCountEstimator;
+import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.listener.ChatModelListener;
 import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.request.ChatRequestParameters;
@@ -28,10 +25,9 @@ import static dev.langchain4j.internal.Utils.getOrDefault;
  * Описание параметров можно найти  <a
  * href="https://developers.sber.ru/docs/ru/gigachat/api/reference/rest/post-chat">тут</a>
  */
-public class GigaChatChatModel implements ChatLanguageModel, TokenCountEstimator {
+public class GigaChatChatModel implements ChatModel {
 
     private final GigaChatClient client;
-    private final Tokenizer tokenizer;
     private final Integer maxRetries;
     private final List<ChatModelListener> listeners;
     private final GigaChatChatRequestParameters defaultChatRequestParameters;
@@ -45,7 +41,6 @@ public class GigaChatChatModel implements ChatLanguageModel, TokenCountEstimator
                              boolean logRequests,
                              boolean logResponses,
                              boolean verifySslCerts,
-                             Tokenizer tokenizer,
                              Integer maxRetries,
                              List<ChatModelListener> listeners,
                              GigaChatChatRequestParameters defaultChatRequestParameters) {
@@ -59,7 +54,6 @@ public class GigaChatChatModel implements ChatLanguageModel, TokenCountEstimator
                 .logResponses(logResponses)
                 .verifySslCerts(verifySslCerts)
                 .build();
-        this.tokenizer = tokenizer;
         this.maxRetries = getOrDefault(maxRetries, 1);
         this.listeners = listeners;
         ChatRequestParameters commonParameters;
@@ -109,10 +103,6 @@ public class GigaChatChatModel implements ChatLanguageModel, TokenCountEstimator
         return listeners;
     }
 
-    @Override
-    public int estimateTokenCount(List<dev.langchain4j.data.message.ChatMessage> messages) {
-        return tokenizer.estimateTokenCountInMessages(messages);
-    }
 
     @Override
     public GigaChatChatRequestParameters defaultRequestParameters() {

@@ -44,6 +44,134 @@ public class GigaChatHelper {
 
     public static final String OBJECT_TYPE = "object";
 
+    public static ChatResponse toResponse(CompletionResponse completions) {
+        return completions.choices()
+                .stream()
+                .map(s -> {
+                    ToolExecutionRequest toolExecutionRequest = null;
+                    if (s.message().functionCall() != null) {
+                        var args = toArgumentsString(s.message().functionCall());
+                        toolExecutionRequest = ToolExecutionRequest.builder()
+                                .id(s.message().functionsStateId())
+                                .name(s.message().functionCall().name())
+                                .arguments(args)
+                                .build();
+                    }
+                    var aiMessage = toolExecutionRequest != null ? AiMessage.builder()
+                            .text(s.message().content())
+                            .toolExecutionRequests(Collections.singletonList(toolExecutionRequest))
+                            .build()
+                            : AiMessage.builder()
+                                    .text(s.message().content())
+                                    .build();
+                    return ChatResponse.builder()
+                            .aiMessage(aiMessage)
+                            .metadata(ChatResponseMetadata.builder()
+                                    .modelName(completions.model())
+                                    .tokenUsage(new TokenUsage(
+                                            completions.usage().promptTokens(),
+                                            completions.usage().completionTokens(),
+                                            completions.usage().totalTokens()))
+                                    .finishReason(finishReasonFrom(
+                                            s.finishReason() != null ? s.finishReason().value() : null))
+                                    .build())
+                            .build();
+                })
+                .findAny()
+                .orElseThrow(() -> new IllegalArgumentException("Choices is empty in the response"));
+    }
+
+    public static CompletionRequest toRequest(ChatRequest chatRequest) {
+        GigaChatChatRequestParameters parameters = null;
+        if (chatRequest.parameters() instanceof GigaChatChatRequestParameters gigaChatParameters) {
+            parameters = gigaChatParameters;
+        }
+        return CompletionRequest.builder()
+                .model(chatRequest.parameters().modelName())
+                .messages(convertChatMessages(chatRequest.messages(), parameters))
+                .temperature(chatRequest.parameters().temperature() != null ? chatRequest.parameters().temperature()
+                        .floatValue() : null)
+                .topP(chatRequest.parameters().topP() != null ? chatRequest.parameters().topP().floatValue() : null)
+                .maxTokens(chatRequest.parameters().maxOutputTokens())
+                .repetitionPenalty(parameters != null ? parameters.getRepetitionPenalty() : null)
+                .profanityCheck(parameters != null ? parameters.getProfanityCheck() : null)
+                .stream(parameters != null ? parameters.getStream() : null)
+                .updateInterval(parameters != null ? parameters.getUpdateInterval() : null)
+                .functionCall(parameters != null ? parameters.getFunctionCall() : null)
+                .functions(chatRequest.toolSpecifications() != null ? (
+                                chatRequest.toolSpecifications()
+                                        .stream()
+                                        .map(toolSpecification -> {
+                                            ChatFunctionParameters chatFunctionParameters;
+                                            if (toolSpecification.parameters() == null) {
+                                                chatFunctionParameters = ChatFunctionParameters.builder()
+                                                        .type(OBJECT_TYPE)
+                                                        .properties(Map.of())
+                                                        .build();
+                                            } else {
+                                                chatFunctionParameters = ChatFunctionParameters.builder()
+                                                        .required(toolSpecification.parameters().required())
+                                                        .properties(convertParameters(
+                                                                toolSpecification.parameters().properties()))
+                                                        .build();
+                                            }
+                                            return ChatFunction.builder()
+                                                    .name(toolSpecification.name())
+                                                    .description(toolSpecification.description())
+                                                    .parameters(chatFunctionParameters)
+                                                    .build();
+                                        })
+                                        .collect(Collectors.toList())
+                        ) : List.of()
+                )
+                .build();
+    }
+
+    public static ToolExecutionRequest toToolExecutionRequest(ChoiceChunk choice) {
+        ChoiceMessageFunctionCall function = choice.delta().functionCall();
+        String functionId = null;
+        String functionName = null;
+        String functionArguments = null;
+
+        if (choice.delta().functionsStateId() != null) {
+            functionId = choice.delta().functionsStateId();
+        }
+        if (function != null) {
+            if (function.name() != null) {
+                functionName = function.name();
+            }
+            if (function.arguments() != null && !function.arguments().isEmpty()) {
+                functionArguments = toArgumentsString(function);
+            }
+        }
+
+        return ToolExecutionRequest.builder()
+                .id(functionId)
+                .name(functionName)
+                .arguments(functionArguments)
+                .build();
+    }
+
+    public static TokenUsage toTokenUsage(Usage usage) {
+        return new TokenUsage(
+                usage.promptTokens(),
+                usage.completionTokens(),
+                usage.totalTokens());
+    }
+
+    public static FinishReason finishReasonFrom(String reason) {
+        if (reason == null) {
+            return null;
+        }
+        return switch (reason) {
+            case "stop" -> STOP;
+            case "length" -> LENGTH;
+            case "function_call" -> TOOL_EXECUTION;
+            case "content_filter" -> CONTENT_FILTER;
+            default -> null;
+        };
+    }
+
     private static List<ChatMessage> convertChatMessages(List<dev.langchain4j.data.message.ChatMessage> messages, GigaChatChatRequestParameters parameters) {
         return messages.stream()
                 .map(message -> convertMessage(message, parameters))
@@ -65,7 +193,7 @@ public class GigaChatHelper {
                     .content(systemMessage.text())
                     .build();
         } else if (message instanceof AiMessage aiMessage) {
-            var id = aiMessage.toolExecutionRequests() != null ?
+            var id = aiMessage.toolExecutionRequests() != null && !aiMessage.toolExecutionRequests().isEmpty() ?
                     aiMessage.toolExecutionRequests().get(0).id() : null;
             return chat.giga.model.completion.ChatMessage.builder()
                     .role(ChatMessageRole.ASSISTANT)
@@ -117,134 +245,7 @@ public class GigaChatHelper {
         return ChatFunctionParametersProperty.builder().build();
     }
 
-    public static ChatResponse toResponse(CompletionResponse completions) {
-        return completions.choices()
-                .stream()
-                .map(s -> {
-                    ToolExecutionRequest toolExecutionRequest = null;
-                    if (s.message().functionCall() != null) {
-                        var args = toArgumentsString(s.message().functionCall());
-                        toolExecutionRequest = ToolExecutionRequest.builder()
-                                .id(s.message().functionsStateId())
-                                .name(s.message().functionCall().name())
-                                .arguments(args)
-                                .build();
-                    }
-                    var aiMessage = toolExecutionRequest != null ? AiMessage.builder()
-                            .text(s.message().content())
-                            .toolExecutionRequests(Collections.singletonList(toolExecutionRequest))
-                            .build()
-                            : AiMessage.builder()
-                            .text(s.message().content())
-                            .build();
-                    return ChatResponse.builder()
-                            .aiMessage(aiMessage)
-                            .metadata(ChatResponseMetadata.builder()
-                                    .modelName(completions.model())
-                                    .tokenUsage(new TokenUsage(
-                                            completions.usage().promptTokens(),
-                                            completions.usage().completionTokens(),
-                                            completions.usage().totalTokens()))
-                                    .finishReason(finishReasonFrom(
-                                            s.finishReason() != null ? s.finishReason().value() : null))
-                                    .build())
-                            .build();
-                })
-                .findAny()
-                .orElseThrow(() -> new IllegalArgumentException("Choices is empty in the response"));
-    }
-
-    public static ToolExecutionRequest toToolExecutionRequest(ChoiceChunk choice) {
-        ChoiceMessageFunctionCall function = choice.delta().functionCall();
-        String functionId = null;
-        String functionName = null;
-        String functionArguments = null;
-
-        if (choice.delta().functionsStateId() != null) {
-            functionId = choice.delta().functionsStateId();
-        }
-        if (function != null) {
-            if (function.name() != null) {
-                functionName = function.name();
-            }
-            if (function.arguments() != null && !function.arguments().isEmpty()) {
-                functionArguments = toArgumentsString(function);
-            }
-        }
-
-        return ToolExecutionRequest.builder()
-                .id(functionId)
-                .name(functionName)
-                .arguments(functionArguments)
-                .build();
-    }
-
     private static String toArgumentsString(ChoiceMessageFunctionCall function) {
         return JsonUtils.objectMapper().convertValue(function.arguments(), JsonNode.class).toString();
-    }
-
-    public static TokenUsage toTokenUsage(Usage usage) {
-        return new TokenUsage(
-                usage.promptTokens(),
-                usage.completionTokens(),
-                usage.totalTokens());
-    }
-
-    public static CompletionRequest toRequest(ChatRequest chatRequest) {
-        GigaChatChatRequestParameters parameters = null;
-        if (chatRequest.parameters() instanceof GigaChatChatRequestParameters gigaChatParameters) {
-            parameters = gigaChatParameters;
-        }
-        return CompletionRequest.builder()
-                .model(chatRequest.parameters().modelName())
-                .messages(convertChatMessages(chatRequest.messages(), parameters))
-                .temperature(chatRequest.parameters().temperature() != null ? chatRequest.parameters().temperature().floatValue() : null)
-                .topP(chatRequest.parameters().topP() != null ? chatRequest.parameters().topP().floatValue() : null)
-                .maxTokens(chatRequest.parameters().maxOutputTokens())
-                .repetitionPenalty(parameters != null ? parameters.getRepetitionPenalty() : null)
-                .profanityCheck(parameters != null ? parameters.getProfanityCheck() : null)
-                .stream(parameters != null ? parameters.getStream() : null)
-                .updateInterval(parameters != null ? parameters.getUpdateInterval() : null)
-                .functionCall(parameters != null ? parameters.getFunctionCall() : null)
-                .functions(chatRequest.toolSpecifications() != null ? (
-                                chatRequest.toolSpecifications()
-                                        .stream()
-                                        .map(toolSpecification -> {
-                                            ChatFunctionParameters chatFunctionParameters;
-                                            if (toolSpecification.parameters() == null) {
-                                                chatFunctionParameters = ChatFunctionParameters.builder()
-                                                        .type(OBJECT_TYPE)
-                                                        .properties(Map.of())
-                                                        .build();
-                                            } else {
-                                                chatFunctionParameters = ChatFunctionParameters.builder()
-                                                        .required(toolSpecification.parameters().required())
-                                                        .properties(convertParameters(
-                                                                toolSpecification.parameters().properties()))
-                                                        .build();
-                                            }
-                                            return ChatFunction.builder()
-                                                    .name(toolSpecification.name())
-                                                    .description(toolSpecification.description())
-                                                    .parameters(chatFunctionParameters)
-                                                    .build();
-                                        })
-                                        .collect(Collectors.toList())
-                        ) : List.of()
-                )
-                .build();
-    }
-
-    public static FinishReason finishReasonFrom(String reason) {
-        if (reason == null) {
-            return null;
-        }
-        return switch (reason) {
-            case "stop" -> STOP;
-            case "length" -> LENGTH;
-            case "function_call" -> TOOL_EXECUTION;
-            case "content_filter" -> CONTENT_FILTER;
-            default -> null;
-        };
     }
 }

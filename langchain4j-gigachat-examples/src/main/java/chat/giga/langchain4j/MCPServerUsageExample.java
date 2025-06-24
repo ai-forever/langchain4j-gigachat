@@ -51,7 +51,7 @@ public class MCPServerUsageExample {
                 .build();
 
         Assistant assistant = AiServices.builder(Assistant.class)
-                .chatLanguageModel(model)
+                .chatModel(model)
                 .moderationModel(new DisabledModerationModel())
                 .toolProvider(toolProvider)
                 .build();

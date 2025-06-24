@@ -55,7 +55,7 @@ class GigaChatHelperTest {
         assertNotNull(response);
         assertNotNull(response.aiMessage());
         assertNotNull(response.aiMessage().text());
-        assertNull(response.aiMessage().toolExecutionRequests());
+        assertEquals(0, response.aiMessage().toolExecutionRequests().size());
         assertNotNull(response.metadata());
         assertEquals("testModel", response.metadata().modelName());
         assertEquals(new TokenUsage(1, 2, 3), response.metadata().tokenUsage());
@@ -88,7 +88,7 @@ class GigaChatHelperTest {
         assertNotNull(response);
         assertNotNull(response.aiMessage());
         assertEquals("No finish reason", response.aiMessage().text());
-        assertNull(response.aiMessage().toolExecutionRequests());
+        assertEquals(0, response.aiMessage().toolExecutionRequests().size());
         assertNull(response.metadata().finishReason());
     }
 

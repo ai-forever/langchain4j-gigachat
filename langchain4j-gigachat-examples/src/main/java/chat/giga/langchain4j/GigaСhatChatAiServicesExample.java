@@ -38,7 +38,7 @@ public class GigaСhatChatAiServicesExample {
                     .logResponses(true)
                     .build();
             var calculator = AiServices.builder(Assistant.class)
-                    .chatLanguageModel(model)
+                    .chatModel(model)
                     .tools(new Calculator())
                     .build();
 

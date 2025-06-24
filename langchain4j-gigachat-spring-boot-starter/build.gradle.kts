@@ -3,7 +3,7 @@ plugins {
     `java-library`
     id("io.freefair.lombok") version "8.12.2"
     id("langchain4j-gigachat.publish")
-    id("org.springframework.boot") version "3.4.3"
+    id("org.springframework.boot") version "3.4.7"
     id("io.spring.dependency-management") version "1.1.7"
 }
 

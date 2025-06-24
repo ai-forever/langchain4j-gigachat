@@ -6,8 +6,8 @@ import chat.giga.langchain4j.GigaChatImageModel;
 import chat.giga.langchain4j.GigaChatStreamingChatModel;
 import chat.giga.model.ModelName;
 import chat.giga.model.Scope;
-import dev.langchain4j.model.chat.ChatLanguageModel;
-import dev.langchain4j.model.chat.StreamingChatLanguageModel;
+import dev.langchain4j.model.chat.ChatModel;
+import dev.langchain4j.model.chat.StreamingChatModel;
 import dev.langchain4j.model.embedding.DimensionAwareEmbeddingModel;
 import dev.langchain4j.model.image.ImageModel;
 import org.junit.jupiter.api.Test;
@@ -35,7 +35,7 @@ class AutoConfigIT {
                         "langchain4j.gigachat.chat-model.auth.scope=" + Scope.GIGACHAT_API_PERS
                 )
                 .run(context -> {
-                    ChatLanguageModel chatLanguageModel = context.getBean(ChatLanguageModel.class);
+                    ChatModel chatLanguageModel = context.getBean(ChatModel.class);
                     assertThat(chatLanguageModel).isInstanceOf(GigaChatChatModel.class);
                 });
     }
@@ -51,7 +51,7 @@ class AutoConfigIT {
                         "langchain4j.gigachat.streaming-chat-model.auth.scope=" + Scope.GIGACHAT_API_PERS
                 )
                 .run(context -> {
-                    StreamingChatLanguageModel chatLanguageModel = context.getBean(StreamingChatLanguageModel.class);
+                    StreamingChatModel chatLanguageModel = context.getBean(StreamingChatModel.class);
                     assertThat(chatLanguageModel).isInstanceOf(GigaChatStreamingChatModel.class);
                 });
     }

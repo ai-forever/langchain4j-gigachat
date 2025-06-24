@@ -37,7 +37,7 @@ public class MultiFunctionsAgentExample {
                 .build();
 
         Assistant assistant = AiServices.builder(Assistant.class)
-                .chatLanguageModel(model)
+                .chatModel(model)
                 .moderationModel(new DisabledModerationModel())
                 .tools(new SearchMovies(), new TripDistance())
                 .build();
