@@ -16,8 +16,12 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
@@ -62,11 +66,25 @@ public class GigaChatChatModelTest {
                         .parameters(GigaChatChatRequestParameters.builder().modelName(ModelName.GIGA_CHAT_PRO)
                                 .build())
                         .build());
-        System.out.println(response);
         assertNotNull(response);
         assertThat(response.tokenUsage().inputTokenCount()).isEqualTo(body.usage().promptTokens());
         assertThat(response.aiMessage().text()).isEqualTo(body.choices().get(0).message().content());
         assertThat(response.metadata().modelName()).isEqualTo(body.model());
         assertThat(response.metadata().finishReason().name()).isEqualTo(body.choices().get(0).finishReason().name());
+    }
+
+    @Test
+    void chatIfException() {
+        when(httpClient.execute(any()))
+                .thenThrow(new UncheckedIOException(new IOException("some error")));
+
+        Exception exception = assertThrows(UncheckedIOException.class, () -> model.chat(
+                ChatRequest.builder()
+                        .messages(new UserMessage("Получить положительное значение квадратного корня из числа 25"))
+                        .parameters(GigaChatChatRequestParameters.builder().modelName(ModelName.GIGA_CHAT_PRO)
+                                .build())
+                        .build()));
+
+        assertThat(exception.getMessage()).isEqualTo("java.io.IOException: some error");
     }
 }
