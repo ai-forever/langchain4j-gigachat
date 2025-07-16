@@ -19,6 +19,9 @@ import dev.langchain4j.data.message.TextContent;
 import dev.langchain4j.data.message.ToolExecutionResultMessage;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.chat.request.ChatRequest;
+import dev.langchain4j.model.chat.request.json.JsonArraySchema;
+import dev.langchain4j.model.chat.request.json.JsonBooleanSchema;
+import dev.langchain4j.model.chat.request.json.JsonEnumSchema;
 import dev.langchain4j.model.chat.request.json.JsonIntegerSchema;
 import dev.langchain4j.model.chat.request.json.JsonNumberSchema;
 import dev.langchain4j.model.chat.request.json.JsonObjectSchema;
@@ -43,6 +46,8 @@ import static dev.langchain4j.model.output.FinishReason.TOOL_EXECUTION;
 public class GigaChatHelper {
 
     public static final String OBJECT_TYPE = "object";
+    public static final String ARRAY_TYPE = "array";
+    public static final String STRING_TYPE = "string";
 
     public static ChatResponse toResponse(CompletionResponse completions) {
         return completions.choices()
@@ -219,7 +224,6 @@ public class GigaChatHelper {
     }
 
     private static ChatFunctionParametersProperty convertToChatFunctionParametersProperty(JsonSchemaElement schemaElement) {
-        var type = "string";
         if (schemaElement instanceof JsonObjectSchema jsonObjectSchema) {
             return ChatFunctionParametersProperty.builder()
                     .type(OBJECT_TYPE)
@@ -228,18 +232,45 @@ public class GigaChatHelper {
                     .build();
         } else if (schemaElement instanceof JsonStringSchema jsonStringSchema) {
             return ChatFunctionParametersProperty.builder()
-                    .type(type)
+                    .type(STRING_TYPE)
                     .description(jsonStringSchema.description())
                     .build();
         } else if (schemaElement instanceof JsonIntegerSchema jsonIntegerSchema) {
             return ChatFunctionParametersProperty.builder()
-                    .type(type)
+                    .type(STRING_TYPE)
                     .description(jsonIntegerSchema.description())
                     .build();
         } else if (schemaElement instanceof JsonNumberSchema jsonNumberSchema) {
             return ChatFunctionParametersProperty.builder()
-                    .type(type)
+                    .type(STRING_TYPE)
                     .description(jsonNumberSchema.description())
+                    .build();
+        } else if (schemaElement instanceof JsonEnumSchema jsonEnumSchema) {
+            return ChatFunctionParametersProperty.builder()
+                    .type(STRING_TYPE)
+                    .description(jsonEnumSchema.description())
+                    .enums(jsonEnumSchema.enumValues())
+                    .build();
+        } else if (schemaElement instanceof JsonBooleanSchema jsonBooleanSchema) {
+            return ChatFunctionParametersProperty.builder()
+                    .type(STRING_TYPE)
+                    .description(jsonBooleanSchema.description())
+                    .build();
+        } else if (schemaElement instanceof JsonArraySchema jsonArraySchema) {
+            Map<String, Object> itemsMap;
+            ChatFunctionParametersProperty parametersProperty = convertToChatFunctionParametersProperty(
+                    jsonArraySchema.items());
+            if (parametersProperty.type().equals(OBJECT_TYPE)) {
+                itemsMap = Map.of("type", OBJECT_TYPE, "properties", parametersProperty.properties());
+            } else if (parametersProperty.enums() != null && !parametersProperty.enums().isEmpty()) {
+                itemsMap = Map.of("type", parametersProperty.type(), "enums", parametersProperty.enums());
+            } else {
+                itemsMap = Map.of("type", parametersProperty.type());
+            }
+            return ChatFunctionParametersProperty.builder()
+                    .type(ARRAY_TYPE)
+                    .description(jsonArraySchema.description())
+                    .items(itemsMap)
                     .build();
         }
         return ChatFunctionParametersProperty.builder().build();

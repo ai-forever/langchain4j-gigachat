@@ -11,6 +11,8 @@ import dev.langchain4j.data.message.ToolExecutionResultMessage;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.request.json.JsonArraySchema;
+import dev.langchain4j.model.chat.request.json.JsonBooleanSchema;
+import dev.langchain4j.model.chat.request.json.JsonEnumSchema;
 import dev.langchain4j.model.chat.request.json.JsonObjectSchema;
 import dev.langchain4j.model.chat.request.json.JsonStringSchema;
 import dev.langchain4j.model.chat.response.ChatResponse;
@@ -22,6 +24,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 
 import static chat.giga.langchain4j.TestData.chatRequest;
@@ -166,14 +169,60 @@ class GigaChatHelperTest {
                         .parameters(JsonObjectSchema.builder()
                                 .addProperties(Map.of("key", JsonArraySchema.builder()
                                         .description("testArray")
-                                        .items(JsonObjectSchema.builder().build())
+                                        .items(JsonStringSchema.builder().description("testval").build())
                                         .build()))
                                 .build())
                         .name("test")
                         .build())
                 .parameters(null).build();
         CompletionRequest request = GigaChatHelper.toRequest(chatRequest);
-        assertNotNull(request.functions().get(0).parameters().properties());
+        var props = request.functions().get(0).parameters().properties();
+        assertNotNull(props);
+        assertThat(props).satisfies(
+                cr -> assertThat(cr.get("key").type()).isEqualTo("array"));
+        assertThat(props).satisfies(
+                cr -> assertThat(cr.get("key").description()).isEqualTo("testArray"));
+        assertThat(props).satisfies(
+                cr -> assertThat(cr.get("key").items().get("type")).isEqualTo("string"));
+    }
+
+
+    @Test
+    void testConvertToChatFunctionParametersWithJsonEnumSchema() {
+        List<String> enums = List.of("enum1", "enum2", "enum3");
+        var chatRequest = chatRequest()
+                .toolSpecifications(ToolSpecification.builder()
+                        .parameters(JsonObjectSchema.builder()
+                                .addProperties(Map.of("key", JsonEnumSchema.builder()
+                                        .description("testDescription")
+                                        .enumValues(enums)
+                                        .build()))
+                                .build())
+                        .name("test")
+                        .build())
+                .parameters(null).build();
+        CompletionRequest request = GigaChatHelper.toRequest(chatRequest);
+        assertThat(request.functions().get(0).parameters().properties()).satisfies(
+                cr -> assertThat(cr.get("key").type()).isEqualTo("string"));
+        assertThat(request.functions().get(0).parameters().properties()).satisfies(
+                cr -> assertThat(cr.get("key").enums()).isEqualTo(enums));
+    }
+
+    @Test
+    void testConvertToChatFunctionParametersWithJsonBooleanSchema() {
+        var chatRequest = chatRequest()
+                .toolSpecifications(ToolSpecification.builder()
+                        .parameters(JsonObjectSchema.builder()
+                                .addProperties(Map.of("key", JsonBooleanSchema.builder()
+                                        .description("testDescription")
+                                        .build()))
+                                .build())
+                        .name("test")
+                        .build())
+                .parameters(null).build();
+        CompletionRequest request = GigaChatHelper.toRequest(chatRequest);
+        assertThat(request.functions().get(0).parameters().properties()).satisfies(
+                cr -> assertThat(cr.get("key").type()).isEqualTo("string"));
     }
 
     @Test
