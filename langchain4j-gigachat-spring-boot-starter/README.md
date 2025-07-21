@@ -17,7 +17,7 @@ implementation("chat.giga:langchain4j-gigachat-spring-boot-starter:0.1.9")
 <dependency>
     <groupId>chat.giga</groupId>
     <artifactId>langchain4j-gigachat-spring-boot-starter</artifactId>
-    <version>0.1.9</version>
+    <version>0.1.10</version>
 </dependency>
 ```
 
