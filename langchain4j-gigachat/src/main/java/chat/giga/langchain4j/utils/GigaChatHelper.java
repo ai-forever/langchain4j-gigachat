@@ -45,9 +45,19 @@ import static dev.langchain4j.model.output.FinishReason.TOOL_EXECUTION;
 
 public class GigaChatHelper {
 
-    public static final String OBJECT_TYPE = "object";
-    public static final String ARRAY_TYPE = "array";
-    public static final String STRING_TYPE = "string";
+    public enum ParamType {
+        OBJECT,
+        ARRAY,
+        STRING,
+        BOOLEAN,
+        INTEGER,
+        NUMBER;
+
+        @Override
+        public String toString() {
+            return name().toLowerCase();
+        }
+    }
 
     public static ChatResponse toResponse(CompletionResponse completions) {
         return completions.choices()
@@ -110,7 +120,7 @@ public class GigaChatHelper {
                                             ChatFunctionParameters chatFunctionParameters;
                                             if (toolSpecification.parameters() == null) {
                                                 chatFunctionParameters = ChatFunctionParameters.builder()
-                                                        .type(OBJECT_TYPE)
+                                                        .type(ParamType.OBJECT.toString())
                                                         .properties(Map.of())
                                                         .build();
                                             } else {
@@ -177,13 +187,15 @@ public class GigaChatHelper {
         };
     }
 
-    private static List<ChatMessage> convertChatMessages(List<dev.langchain4j.data.message.ChatMessage> messages, GigaChatChatRequestParameters parameters) {
+    private static List<ChatMessage> convertChatMessages(List<dev.langchain4j.data.message.ChatMessage> messages,
+            GigaChatChatRequestParameters parameters) {
         return messages.stream()
                 .map(message -> convertMessage(message, parameters))
                 .collect(Collectors.toList());
     }
 
-    private static ChatMessage convertMessage(dev.langchain4j.data.message.ChatMessage message, GigaChatChatRequestParameters parameters) {
+    private static ChatMessage convertMessage(dev.langchain4j.data.message.ChatMessage message,
+            GigaChatChatRequestParameters parameters) {
         if (message instanceof UserMessage userMessage) {
             return chat.giga.model.completion.ChatMessage.builder()
                     .role(ChatMessageRole.USER)
@@ -215,7 +227,8 @@ public class GigaChatHelper {
         }
     }
 
-    private static Map<String, ChatFunctionParametersProperty> convertParameters(Map<String, JsonSchemaElement> inputMap) {
+    private static Map<String, ChatFunctionParametersProperty> convertParameters(
+            Map<String, JsonSchemaElement> inputMap) {
         return inputMap.entrySet().stream()
                 .collect(Collectors.toMap(
                         Map.Entry::getKey,
@@ -223,52 +236,53 @@ public class GigaChatHelper {
                 ));
     }
 
-    private static ChatFunctionParametersProperty convertToChatFunctionParametersProperty(JsonSchemaElement schemaElement) {
+    private static ChatFunctionParametersProperty convertToChatFunctionParametersProperty(
+            JsonSchemaElement schemaElement) {
         if (schemaElement instanceof JsonObjectSchema jsonObjectSchema) {
             return ChatFunctionParametersProperty.builder()
-                    .type(OBJECT_TYPE)
+                    .type(ParamType.OBJECT.toString())
                     .properties(convertParameters(jsonObjectSchema.properties()))
                     .description(jsonObjectSchema.description())
                     .build();
         } else if (schemaElement instanceof JsonStringSchema jsonStringSchema) {
             return ChatFunctionParametersProperty.builder()
-                    .type(STRING_TYPE)
+                    .type(ParamType.STRING.toString())
                     .description(jsonStringSchema.description())
                     .build();
         } else if (schemaElement instanceof JsonIntegerSchema jsonIntegerSchema) {
             return ChatFunctionParametersProperty.builder()
-                    .type(STRING_TYPE)
+                    .type(ParamType.INTEGER.toString())
                     .description(jsonIntegerSchema.description())
                     .build();
         } else if (schemaElement instanceof JsonNumberSchema jsonNumberSchema) {
             return ChatFunctionParametersProperty.builder()
-                    .type(STRING_TYPE)
+                    .type(ParamType.NUMBER.toString())
                     .description(jsonNumberSchema.description())
                     .build();
         } else if (schemaElement instanceof JsonEnumSchema jsonEnumSchema) {
             return ChatFunctionParametersProperty.builder()
-                    .type(STRING_TYPE)
+                    .type(ParamType.STRING.toString())
                     .description(jsonEnumSchema.description())
                     .enums(jsonEnumSchema.enumValues())
                     .build();
         } else if (schemaElement instanceof JsonBooleanSchema jsonBooleanSchema) {
             return ChatFunctionParametersProperty.builder()
-                    .type(STRING_TYPE)
+                    .type(ParamType.BOOLEAN.toString())
                     .description(jsonBooleanSchema.description())
                     .build();
         } else if (schemaElement instanceof JsonArraySchema jsonArraySchema) {
             Map<String, Object> itemsMap;
             ChatFunctionParametersProperty parametersProperty = convertToChatFunctionParametersProperty(
                     jsonArraySchema.items());
-            if (parametersProperty.type().equals(OBJECT_TYPE)) {
-                itemsMap = Map.of("type", OBJECT_TYPE, "properties", parametersProperty.properties());
+            if (parametersProperty.type().equals(ParamType.OBJECT.toString())) {
+                itemsMap = Map.of("type", ParamType.OBJECT.toString(), "properties", parametersProperty.properties());
             } else if (parametersProperty.enums() != null && !parametersProperty.enums().isEmpty()) {
                 itemsMap = Map.of("type", parametersProperty.type(), "enums", parametersProperty.enums());
             } else {
                 itemsMap = Map.of("type", parametersProperty.type());
             }
             return ChatFunctionParametersProperty.builder()
-                    .type(ARRAY_TYPE)
+                    .type(ParamType.ARRAY.toString())
                     .description(jsonArraySchema.description())
                     .items(itemsMap)
                     .build();
