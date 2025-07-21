@@ -13,6 +13,8 @@ import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.request.json.JsonArraySchema;
 import dev.langchain4j.model.chat.request.json.JsonBooleanSchema;
 import dev.langchain4j.model.chat.request.json.JsonEnumSchema;
+import dev.langchain4j.model.chat.request.json.JsonIntegerSchema;
+import dev.langchain4j.model.chat.request.json.JsonNumberSchema;
 import dev.langchain4j.model.chat.request.json.JsonObjectSchema;
 import dev.langchain4j.model.chat.request.json.JsonStringSchema;
 import dev.langchain4j.model.chat.response.ChatResponse;
@@ -222,7 +224,41 @@ class GigaChatHelperTest {
                 .parameters(null).build();
         CompletionRequest request = GigaChatHelper.toRequest(chatRequest);
         assertThat(request.functions().get(0).parameters().properties()).satisfies(
-                cr -> assertThat(cr.get("key").type()).isEqualTo("string"));
+                cr -> assertThat(cr.get("key").type()).isEqualTo("boolean"));
+    }
+
+    @Test
+    void testConvertToChatFunctionParametersWithJsonIntegerSchema() {
+        var chatRequest = chatRequest()
+                .toolSpecifications(ToolSpecification.builder()
+                        .parameters(JsonObjectSchema.builder()
+                                .addProperties(Map.of("key", JsonIntegerSchema.builder()
+                                        .description("testDescription")
+                                        .build()))
+                                .build())
+                        .name("test")
+                        .build())
+                .parameters(null).build();
+        CompletionRequest request = GigaChatHelper.toRequest(chatRequest);
+        assertThat(request.functions().get(0).parameters().properties()).satisfies(
+                cr -> assertThat(cr.get("key").type()).isEqualTo("integer"));
+    }
+
+    @Test
+    void testConvertToChatFunctionParametersWithJsonNumberSchema() {
+        var chatRequest = chatRequest()
+                .toolSpecifications(ToolSpecification.builder()
+                        .parameters(JsonObjectSchema.builder()
+                                .addProperties(Map.of("key", JsonNumberSchema.builder()
+                                        .description("testDescription")
+                                        .build()))
+                                .build())
+                        .name("test")
+                        .build())
+                .parameters(null).build();
+        CompletionRequest request = GigaChatHelper.toRequest(chatRequest);
+        assertThat(request.functions().get(0).parameters().properties()).satisfies(
+                cr -> assertThat(cr.get("key").type()).isEqualTo("number"));
     }
 
     @Test
