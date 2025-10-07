@@ -10,12 +10,12 @@ repositories {
 }
 
 dependencies {
-    api("dev.langchain4j:langchain4j:1.4.0")
+    api("dev.langchain4j:langchain4j:1.7.1")
     api("chat.giga:gigachat-java:0.1.10")
 
-    testImplementation(platform("org.junit:junit-bom:5.10.0"))
+    testImplementation(platform("org.junit:junit-bom:5.10.5"))
     testImplementation("org.junit.jupiter:junit-jupiter")
-    testImplementation("org.assertj:assertj-core:3.27.3")
+    testImplementation("org.assertj:assertj-core:3.27.6")
     testImplementation("org.mockito:mockito-junit-jupiter:5.15.2")
     testImplementation("io.github.dvgaba:easy-random-core:7.1.0")
 }
