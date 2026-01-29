@@ -8,6 +8,7 @@ import dev.langchain4j.model.chat.listener.ChatModelListener;
 import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.request.ChatRequestParameters;
 import dev.langchain4j.model.chat.request.DefaultChatRequestParameters;
+import dev.langchain4j.model.chat.request.ResponseFormat;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import lombok.Builder;
 
@@ -16,6 +17,7 @@ import java.util.List;
 import static chat.giga.langchain4j.utils.GigaChatHelper.toRequest;
 import static chat.giga.langchain4j.utils.GigaChatHelper.toResponse;
 import static dev.langchain4j.internal.RetryUtils.withRetry;
+import static dev.langchain4j.internal.Utils.firstNotNull;
 import static dev.langchain4j.internal.Utils.getOrDefault;
 
 
@@ -43,6 +45,8 @@ public class GigaChatChatModel implements ChatModel {
                              boolean verifySslCerts,
                              Integer maxRetries,
                              List<ChatModelListener> listeners,
+            ResponseFormat responseFormat,
+            Boolean strictJsonSchema,
                              GigaChatChatRequestParameters defaultChatRequestParameters) {
         this.client = GigaChatClient.builder()
                 .apiHttpClient(apiHttpClient)
@@ -80,7 +84,6 @@ public class GigaChatChatModel implements ChatModel {
                 .stopSequences(commonParameters.stopSequences())
                 .toolSpecifications(commonParameters.toolSpecifications())
                 .toolChoice(commonParameters.toolChoice())
-                .responseFormat(commonParameters.responseFormat())
 
                 // custom
                 .updateInterval(getOrDefault(gigaChatParameters.getUpdateInterval(), 0))
@@ -90,6 +93,10 @@ public class GigaChatChatModel implements ChatModel {
                 .attachments(gigaChatParameters.getAttachments())
                 .repetitionPenalty(gigaChatParameters.getRepetitionPenalty())
                 .sessionId(gigaChatParameters.getSessionId())
+                .strictJsonSchema(
+                        firstNotNull("strictJsonSchema", strictJsonSchema, gigaChatParameters.getStrictJsonSchema(),
+                                false))
+                .responseFormat(getOrDefault(responseFormat, commonParameters.responseFormat()))
                 .build();
     }
 

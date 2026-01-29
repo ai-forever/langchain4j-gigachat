@@ -10,6 +10,7 @@ import chat.giga.model.completion.ChoiceChunk;
 import chat.giga.model.completion.ChoiceMessageFunctionCall;
 import chat.giga.model.completion.CompletionRequest;
 import chat.giga.model.completion.CompletionResponse;
+import chat.giga.model.completion.ResponseFormatType;
 import chat.giga.model.completion.Usage;
 import com.fasterxml.jackson.databind.JsonNode;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
@@ -19,12 +20,15 @@ import dev.langchain4j.data.message.TextContent;
 import dev.langchain4j.data.message.ToolExecutionResultMessage;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.chat.request.ChatRequest;
+import dev.langchain4j.model.chat.request.ResponseFormat;
 import dev.langchain4j.model.chat.request.json.JsonArraySchema;
 import dev.langchain4j.model.chat.request.json.JsonBooleanSchema;
 import dev.langchain4j.model.chat.request.json.JsonEnumSchema;
 import dev.langchain4j.model.chat.request.json.JsonIntegerSchema;
 import dev.langchain4j.model.chat.request.json.JsonNumberSchema;
 import dev.langchain4j.model.chat.request.json.JsonObjectSchema;
+import dev.langchain4j.model.chat.request.json.JsonRawSchema;
+import dev.langchain4j.model.chat.request.json.JsonSchema;
 import dev.langchain4j.model.chat.request.json.JsonSchemaElement;
 import dev.langchain4j.model.chat.request.json.JsonStringSchema;
 import dev.langchain4j.model.chat.response.ChatResponse;
@@ -37,7 +41,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import static dev.langchain4j.internal.JsonSchemaElementUtils.toMap;
 import static dev.langchain4j.internal.Utils.getOrDefault;
+import static dev.langchain4j.model.chat.request.ResponseFormatType.JSON;
+import static dev.langchain4j.model.chat.request.ResponseFormatType.TEXT;
 import static dev.langchain4j.model.output.FinishReason.CONTENT_FILTER;
 import static dev.langchain4j.model.output.FinishReason.LENGTH;
 import static dev.langchain4j.model.output.FinishReason.STOP;
@@ -113,6 +120,8 @@ public class GigaChatHelper {
                 .stream(parameters != null ? parameters.getStream() : null)
                 .updateInterval(parameters != null ? parameters.getUpdateInterval() : null)
                 .functionCall(parameters != null ? parameters.getFunctionCall() : null)
+                .responseFormat(toResponseFormat(chatRequest.responseFormat(),
+                        parameters != null ? parameters.getStrictJsonSchema() : false))
                 .functions(chatRequest.toolSpecifications() != null ? (
                                 chatRequest.toolSpecifications()
                                         .stream()
@@ -140,6 +149,35 @@ public class GigaChatHelper {
                         ) : List.of()
                 )
                 .build();
+    }
+
+    public static chat.giga.model.completion.ResponseFormat toResponseFormat(ResponseFormat responseFormat,
+            Boolean strict) {
+        if (responseFormat != null && responseFormat.type() == JSON) {
+            JsonSchema jsonSchema = responseFormat.jsonSchema();
+            if (jsonSchema != null) {
+                if (!(jsonSchema.rootElement() instanceof JsonObjectSchema
+                        || jsonSchema.rootElement() instanceof JsonRawSchema)) {
+                    throw new IllegalArgumentException(
+                            "For GigaChat, the root element of the JSON Schema must be either a JsonObjectSchema or a JsonRawSchema, but it was: "
+                                    + jsonSchema.rootElement().getClass());
+                }
+                Map<String, Object> schema = toMap(jsonSchema.rootElement(), strict);
+                return chat.giga.model.completion.ResponseFormat.builder()
+                        .type(ResponseFormatType.JSON_SCHEMA)
+                        .schema(schema)
+                        .strict(strict)
+                        .build();
+            } else {
+                throw new IllegalArgumentException("For GigaChat, jsonSchema is missing");
+            }
+        } else if (responseFormat != null && responseFormat.type() == TEXT) {
+            return chat.giga.model.completion.ResponseFormat.builder()
+                    .type(ResponseFormatType.TEXT)
+                    .build();
+        } else {
+            return null;
+        }
     }
 
     public static ToolExecutionRequest toToolExecutionRequest(ChoiceChunk choice) {

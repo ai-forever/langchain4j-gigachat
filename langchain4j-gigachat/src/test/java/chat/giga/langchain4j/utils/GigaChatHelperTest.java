@@ -3,6 +3,8 @@ package chat.giga.langchain4j.utils;
 import chat.giga.langchain4j.GigaChatChatRequestParameters;
 import chat.giga.model.completion.CompletionRequest;
 import chat.giga.model.completion.CompletionResponse;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.data.message.AiMessage;
@@ -10,12 +12,15 @@ import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.data.message.ToolExecutionResultMessage;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.chat.request.ChatRequest;
+import dev.langchain4j.model.chat.request.ResponseFormat;
 import dev.langchain4j.model.chat.request.json.JsonArraySchema;
 import dev.langchain4j.model.chat.request.json.JsonBooleanSchema;
 import dev.langchain4j.model.chat.request.json.JsonEnumSchema;
 import dev.langchain4j.model.chat.request.json.JsonIntegerSchema;
 import dev.langchain4j.model.chat.request.json.JsonNumberSchema;
 import dev.langchain4j.model.chat.request.json.JsonObjectSchema;
+import dev.langchain4j.model.chat.request.json.JsonRawSchema;
+import dev.langchain4j.model.chat.request.json.JsonSchema;
 import dev.langchain4j.model.chat.request.json.JsonStringSchema;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.output.FinishReason;
@@ -38,6 +43,7 @@ import static chat.giga.langchain4j.TestData.completionResponse;
 import static chat.giga.model.completion.ChatMessageRole.FUNCTION;
 import static chat.giga.model.completion.ChatMessageRole.SYSTEM;
 import static chat.giga.model.completion.ChatMessageRole.USER;
+import static dev.langchain4j.model.chat.request.ResponseFormatType.JSON;
 import static dev.langchain4j.model.output.FinishReason.TOOL_EXECUTION;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -360,5 +366,65 @@ class GigaChatHelperTest {
 
         assertNotNull(request);
         assertEquals(FUNCTION, request.messages().get(0).role());
+    }
+
+    @Test
+    void testToRequestWithStructOutputJsonFormat() throws JsonProcessingException {
+        String raw_schema = """
+                {"type":"object","properties":{"name":{"type":"string"},"age":{"type":"integer"}},"required":["name","age"]}}
+                """;
+        ResponseFormat responseFormatRaw = ResponseFormat.builder()
+                .type(JSON)
+                .jsonSchema(JsonSchema.builder()
+                        .name("Person")
+                        .rootElement(JsonObjectSchema.builder()
+                                .addStringProperty("name")
+                                .addIntegerProperty("age")
+                                .required("name", "age")
+                                .build())
+                        .build())
+                .build();
+
+        CompletionRequest request = GigaChatHelper.toRequest(ChatRequest.builder()
+                .parameters(
+                        GigaChatChatRequestParameters.builder().modelName("testModel").responseFormat(responseFormatRaw)
+                                .strictJsonSchema(false).build())
+                .messages(UserMessage.from("hello"))
+                .build());
+
+        assertNotNull(request);
+        assertNotNull(request.responseFormat());
+        chat.giga.model.completion.ResponseFormat responseFormatConverted = request.responseFormat();
+        assertEquals(chat.giga.model.completion.ResponseFormatType.JSON_SCHEMA, responseFormatConverted.type());
+        assertEquals(JsonUtils.objectMapper().readTree(raw_schema),
+                JsonUtils.objectMapper().convertValue(responseFormatConverted.schema(), JsonNode.class));
+
+    }
+
+    @Test
+    void testToRequestWithStructOutputStringRawFormat() throws JsonProcessingException {
+        String raw_schema = """
+                {"type":"object","properties":{"name":{"type":"string"},"age":{"type":"integer"}},"required":["name","age"],"additionalProperties":false}}
+                """;
+        ResponseFormat responseFormatRaw = ResponseFormat.builder()
+                .type(JSON)
+                .jsonSchema(JsonSchema.builder()
+                        .name("Person")
+                        .rootElement(JsonRawSchema.builder().schema(raw_schema).build())
+                        .build())
+                .build();
+
+        CompletionRequest request = GigaChatHelper.toRequest(ChatRequest.builder()
+                .parameters(
+                        GigaChatChatRequestParameters.builder().modelName("testModel").responseFormat(responseFormatRaw)
+                                .strictJsonSchema(false).build())
+                .messages(UserMessage.from("hello"))
+                .build());
+
+        assertNotNull(request);
+        chat.giga.model.completion.ResponseFormat responseFormatConverted = request.responseFormat();
+        assertEquals(chat.giga.model.completion.ResponseFormatType.JSON_SCHEMA, responseFormatConverted.type());
+        assertEquals(JsonUtils.objectMapper().readTree(raw_schema),
+                JsonUtils.objectMapper().convertValue(responseFormatConverted.schema(), JsonNode.class));
     }
 }

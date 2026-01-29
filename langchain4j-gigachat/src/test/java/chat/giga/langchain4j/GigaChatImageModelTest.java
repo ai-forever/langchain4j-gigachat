@@ -49,7 +49,6 @@ public class GigaChatImageModelTest {
                 .defaultChatRequestParameters(GigaChatChatRequestParameters.builder()
                         .temperature(1.0)
                         .modelName(ModelName.GIGA_CHAT_PRO)
-                        .responseFormat(JsonSchema.builder().build())
                         .build())
                 .build();
     }
@@ -64,7 +63,6 @@ public class GigaChatImageModelTest {
                         .build());
 
         Response<Image> response = model.generate("нарисуй кота");
-        System.out.println(response);
         assertNotNull(response.content().base64Data());
     }
 
