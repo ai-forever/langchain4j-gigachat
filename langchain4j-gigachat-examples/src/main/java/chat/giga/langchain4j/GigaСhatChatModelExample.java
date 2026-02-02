@@ -1,10 +1,10 @@
 package chat.giga.langchain4j;
 
 import chat.giga.client.auth.AuthClient;
-import chat.giga.client.auth.AuthClientBuilder;
 import chat.giga.http.client.HttpClientException;
+import chat.giga.http.client.JdkHttpClientBuilder;
+import chat.giga.http.client.SSL;
 import chat.giga.model.ModelName;
-import chat.giga.model.Scope;
 
 public class GigaСhatChatModelExample {
 
@@ -12,12 +12,19 @@ public class GigaСhatChatModelExample {
         try {
             GigaChatChatModel model = GigaChatChatModel.builder()
                     .defaultChatRequestParameters(GigaChatChatRequestParameters.builder()
-                            .modelName(ModelName.GIGA_CHAT_PRO)
+                            .modelName(ModelName.GIGA_CHAT_PRO_2)
                             .build())
+                    .apiUrl("https://gigachat-ift.sberdevices.delta.sbrf.ru/v1")
                     .authClient(AuthClient.builder()
-                            .withOAuth(AuthClientBuilder.OAuthBuilder.builder()
-                                    .scope(Scope.GIGACHAT_API_PERS)
-                                    .authKey("testkey")
+                            .withCertificatesAuth(new JdkHttpClientBuilder()
+                                    .ssl(SSL.builder()
+                                            .truststorePassword(System.getenv("TRUST_PASSWORD"))
+                                            .trustStoreType("PKCS12")
+                                            .truststorePath(System.getenv("TRUST_PATH"))
+                                            .keystorePassword(System.getenv("KEY_PASSWORD"))
+                                            .keystoreType("PKCS12")
+                                            .keystorePath(System.getenv("KEY_PATH"))
+                                            .build())
                                     .build())
                             .build())
                     .logRequests(true)

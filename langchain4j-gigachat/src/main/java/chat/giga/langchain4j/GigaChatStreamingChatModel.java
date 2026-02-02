@@ -13,6 +13,7 @@ import dev.langchain4j.model.chat.listener.ChatModelListener;
 import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.request.ChatRequestParameters;
 import dev.langchain4j.model.chat.request.DefaultChatRequestParameters;
+import dev.langchain4j.model.chat.request.ResponseFormat;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.chat.response.ChatResponseMetadata;
 import dev.langchain4j.model.chat.response.StreamingChatResponseHandler;
@@ -25,6 +26,8 @@ import static chat.giga.langchain4j.utils.GigaChatHelper.finishReasonFrom;
 import static chat.giga.langchain4j.utils.GigaChatHelper.toRequest;
 import static chat.giga.langchain4j.utils.GigaChatHelper.toTokenUsage;
 import static chat.giga.langchain4j.utils.GigaChatHelper.toToolExecutionRequest;
+import static dev.langchain4j.internal.Utils.copy;
+import static dev.langchain4j.internal.Utils.firstNotNull;
 import static dev.langchain4j.internal.Utils.getOrDefault;
 
 /**
@@ -48,6 +51,8 @@ public class GigaChatStreamingChatModel implements StreamingChatModel {
             boolean logResponses,
             boolean verifySslCerts,
             List<ChatModelListener> listeners,
+            ResponseFormat responseFormat,
+            Boolean strictJsonSchema,
             GigaChatChatRequestParameters defaultChatRequestParameters) {
 
         this.asyncClient = GigaChatClientAsync.builder()
@@ -60,7 +65,7 @@ public class GigaChatStreamingChatModel implements StreamingChatModel {
                 .logResponses(logResponses)
                 .verifySslCerts(verifySslCerts)
                 .build();
-        this.listeners = listeners;
+        this.listeners = copy(listeners);
         ChatRequestParameters commonParameters;
         if (defaultChatRequestParameters != null) {
             commonParameters = defaultChatRequestParameters;
@@ -93,6 +98,10 @@ public class GigaChatStreamingChatModel implements StreamingChatModel {
                 .functionCall(gigaChatParameters.getFunctionCall())
                 .attachments(gigaChatParameters.getAttachments())
                 .repetitionPenalty(gigaChatParameters.getRepetitionPenalty())
+                .strictJsonSchema(
+                        firstNotNull("strictJsonSchema", strictJsonSchema, gigaChatParameters.getStrictJsonSchema(),
+                                false))
+                .responseFormat(getOrDefault(responseFormat, commonParameters.responseFormat()))
                 .build();
     }
 

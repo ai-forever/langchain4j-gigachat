@@ -13,7 +13,7 @@ public class GigaChatImageModelExample {
 
             GigaChatImageModel model = GigaChatImageModel.builder()
                     .defaultChatRequestParameters(GigaChatChatRequestParameters.builder()
-                            .modelName(ModelName.GIGA_CHAT_PRO)
+                            .modelName(ModelName.GIGA_CHAT_PRO_2)
                             .build())
                     .authClient(AuthClient.builder()
                             .withOAuth(AuthClientBuilder.OAuthBuilder.builder()
