@@ -18,6 +18,7 @@ public class GigaChatChatRequestParameters extends DefaultChatRequestParameters 
     private final List<String> attachments;
     private final Float repetitionPenalty;
     private final String sessionId;
+    private final Boolean strictJsonSchema;
 
     private GigaChatChatRequestParameters(GigaChatBuilder builder) {
         super(builder);
@@ -28,6 +29,7 @@ public class GigaChatChatRequestParameters extends DefaultChatRequestParameters 
         this.attachments = builder.attachments;
         this.repetitionPenalty = builder.repetitionPenalty;
         this.sessionId = builder.sessionId;
+        this.strictJsonSchema = builder.strictJsonSchema;
     }
 
     public static class GigaChatBuilder extends Builder<GigaChatBuilder> {
@@ -39,6 +41,7 @@ public class GigaChatChatRequestParameters extends DefaultChatRequestParameters 
         private List<String> attachments;
         private Float repetitionPenalty;
         private String sessionId;
+        private Boolean strictJsonSchema = false;
 
         public GigaChatBuilder updateInterval(Integer updateInterval) {
             this.updateInterval = updateInterval;
@@ -72,6 +75,11 @@ public class GigaChatChatRequestParameters extends DefaultChatRequestParameters 
             return this;
         }
 
+        public GigaChatBuilder strictJsonSchema(Boolean strictJsonSchema) {
+            this.strictJsonSchema = strictJsonSchema;
+            return this;
+        }
+
         @Override
         public GigaChatChatRequestParameters build() {
             return new GigaChatChatRequestParameters(this);
@@ -88,6 +96,7 @@ public class GigaChatChatRequestParameters extends DefaultChatRequestParameters 
                 stream(getOrDefault(chatChatRequestParameters.getStream(), stream));
                 repetitionPenalty(getOrDefault(chatChatRequestParameters.getRepetitionPenalty(), repetitionPenalty));
                 sessionId(getOrDefault(chatChatRequestParameters.getSessionId(), sessionId));
+                strictJsonSchema(getOrDefault(chatChatRequestParameters.getStrictJsonSchema(), strictJsonSchema));
             }
             return this;
         }

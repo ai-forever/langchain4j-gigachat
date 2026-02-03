@@ -3,20 +3,28 @@ package chat.giga.langchain4j;
 import chat.giga.client.GigaChatClient;
 import chat.giga.client.auth.AuthClient;
 import chat.giga.http.client.HttpClient;
+import dev.langchain4j.model.chat.Capability;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.listener.ChatModelListener;
 import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.request.ChatRequestParameters;
 import dev.langchain4j.model.chat.request.DefaultChatRequestParameters;
+import dev.langchain4j.model.chat.request.ResponseFormat;
+import dev.langchain4j.model.chat.request.ResponseFormatType;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import lombok.Builder;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import static chat.giga.langchain4j.utils.GigaChatHelper.toRequest;
 import static chat.giga.langchain4j.utils.GigaChatHelper.toResponse;
 import static dev.langchain4j.internal.RetryUtils.withRetry;
+import static dev.langchain4j.internal.Utils.copy;
+import static dev.langchain4j.internal.Utils.firstNotNull;
 import static dev.langchain4j.internal.Utils.getOrDefault;
+import static dev.langchain4j.model.chat.Capability.RESPONSE_FORMAT_JSON_SCHEMA;
 
 
 /**
@@ -30,6 +38,7 @@ public class GigaChatChatModel implements ChatModel {
     private final GigaChatClient client;
     private final Integer maxRetries;
     private final List<ChatModelListener> listeners;
+    private final Set<Capability> supportedCapabilities;
     private final GigaChatChatRequestParameters defaultChatRequestParameters;
 
     @Builder
@@ -43,6 +52,9 @@ public class GigaChatChatModel implements ChatModel {
                              boolean verifySslCerts,
                              Integer maxRetries,
                              List<ChatModelListener> listeners,
+            ResponseFormat responseFormat,
+            Boolean strictJsonSchema,
+            Set<Capability> supportedCapabilities,
                              GigaChatChatRequestParameters defaultChatRequestParameters) {
         this.client = GigaChatClient.builder()
                 .apiHttpClient(apiHttpClient)
@@ -55,7 +67,8 @@ public class GigaChatChatModel implements ChatModel {
                 .verifySslCerts(verifySslCerts)
                 .build();
         this.maxRetries = getOrDefault(maxRetries, 1);
-        this.listeners = listeners;
+        this.listeners = copy(listeners);
+        this.supportedCapabilities = copy(supportedCapabilities);
         ChatRequestParameters commonParameters;
         if (defaultChatRequestParameters != null) {
             commonParameters = defaultChatRequestParameters;
@@ -80,7 +93,6 @@ public class GigaChatChatModel implements ChatModel {
                 .stopSequences(commonParameters.stopSequences())
                 .toolSpecifications(commonParameters.toolSpecifications())
                 .toolChoice(commonParameters.toolChoice())
-                .responseFormat(commonParameters.responseFormat())
 
                 // custom
                 .updateInterval(getOrDefault(gigaChatParameters.getUpdateInterval(), 0))
@@ -90,6 +102,10 @@ public class GigaChatChatModel implements ChatModel {
                 .attachments(gigaChatParameters.getAttachments())
                 .repetitionPenalty(gigaChatParameters.getRepetitionPenalty())
                 .sessionId(gigaChatParameters.getSessionId())
+                .strictJsonSchema(
+                        firstNotNull("strictJsonSchema", strictJsonSchema, gigaChatParameters.getStrictJsonSchema(),
+                                false))
+                .responseFormat(getOrDefault(responseFormat, commonParameters.responseFormat()))
                 .build();
     }
 
@@ -103,6 +119,15 @@ public class GigaChatChatModel implements ChatModel {
         return listeners;
     }
 
+    @Override
+    public Set<Capability> supportedCapabilities() {
+        Set<Capability> capabilities = new HashSet<>(supportedCapabilities);
+        ResponseFormat responseFormat = this.defaultChatRequestParameters.responseFormat();
+        if (responseFormat != null && ResponseFormatType.JSON.equals(responseFormat.type())) {
+            capabilities.add(RESPONSE_FORMAT_JSON_SCHEMA);
+        }
+        return capabilities;
+    }
 
     @Override
     public GigaChatChatRequestParameters defaultRequestParameters() {

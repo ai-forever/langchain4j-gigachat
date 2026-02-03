@@ -8,7 +8,7 @@ import dev.langchain4j.mcp.McpToolProvider;
 import dev.langchain4j.mcp.client.DefaultMcpClient;
 import dev.langchain4j.mcp.client.McpClient;
 import dev.langchain4j.mcp.client.transport.McpTransport;
-import dev.langchain4j.mcp.client.transport.http.HttpMcpTransport;
+import dev.langchain4j.mcp.client.transport.http.StreamableHttpMcpTransport;
 import dev.langchain4j.model.moderation.DisabledModerationModel;
 import dev.langchain4j.service.AiServices;
 import dev.langchain4j.service.UserMessage;
@@ -18,9 +18,9 @@ import java.util.List;
 
 public class MCPServerUsageExample {
 
-    public static void main(String args[]) {
-        McpTransport transport = new HttpMcpTransport.Builder()
-                .sseUrl("http://localhost:8081/sse")
+    public static void main(String[] args) {
+        McpTransport transport = new StreamableHttpMcpTransport.Builder()
+                .url("http://localhost:8081/sse")
                 .logRequests(true)
                 .logResponses(true)
                 .build();

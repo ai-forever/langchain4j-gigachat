@@ -25,7 +25,7 @@ public class GigaChatChatStreamingAiServicesExample {
                                     .build())
                             .build())
                     .defaultChatRequestParameters(GigaChatChatRequestParameters.builder()
-                            .modelName(ModelName.GIGA_CHAT_PRO)
+                            .modelName(ModelName.GIGA_CHAT_PRO_2)
                             .responseFormat(JsonSchema.builder()
                                     .rootElement(new JsonStringSchema())
                                     .build())

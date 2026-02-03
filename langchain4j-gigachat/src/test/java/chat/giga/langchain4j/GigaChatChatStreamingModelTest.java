@@ -51,7 +51,6 @@ public class GigaChatChatStreamingModelTest {
                 .defaultChatRequestParameters(GigaChatChatRequestParameters.builder()
                         .temperature(1.0)
                         .modelName(ModelName.GIGA_CHAT_PRO)
-                        .responseFormat(JsonSchema.builder().build())
                         .build())
                 .build();
     }
