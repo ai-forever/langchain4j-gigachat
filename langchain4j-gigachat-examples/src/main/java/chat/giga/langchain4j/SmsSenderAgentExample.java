@@ -84,7 +84,7 @@ public class SmsSenderAgentExample {
 
     static class SMSSender {
 
-        @Tool(name = "smsSender", metadata = """
+        @Tool(name = "sendSms", metadata = """
                 {
                     "few_shot_examples": [
                     {
