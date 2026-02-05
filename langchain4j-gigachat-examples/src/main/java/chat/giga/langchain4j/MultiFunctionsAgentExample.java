@@ -22,7 +22,7 @@ public class MultiFunctionsAgentExample {
         GigaChatChatModel model = GigaChatChatModel.builder()
                 .maxRetries(3)
                 .defaultChatRequestParameters(GigaChatChatRequestParameters.builder()
-                        .modelName(ModelName.GIGA_CHAT_MAX_2)
+                        .modelName(ModelName.GIGA_CHAT_PRO_2)
                         .profanityCheck(false)
                         .build())
                 .verifySslCerts(false)
@@ -69,7 +69,7 @@ public class MultiFunctionsAgentExample {
 
     static class SearchMovies {
 
-        @Tool("Метод поиска фильмов на основе заданных критериев")
+        @Tool(name = "searchMovie", value = "Метод поиска фильмов на основе заданных критериев")
         SearchMoviesResult search(
                 @P(value = "Жанр фильма", required = false) String genre,
                 @P(value = "Год выпуска фильма", required = false) Integer year,
@@ -88,7 +88,7 @@ public class MultiFunctionsAgentExample {
 
     static class TripDistance {
 
-        @Tool("Метод расчета расстояние между двумя местоположениями")
+        @Tool(name = "calculate", value = "Метод расчета расстояние между двумя местоположениями")
         TripDistanceResult calculate(
                 @P("Начальное местоположение") String startLocation,
                 @P("Конечное местоположение") String endLocation) {

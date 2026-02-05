@@ -2,6 +2,7 @@ package chat.giga.langchain4j.utils;
 
 import chat.giga.langchain4j.GigaChatChatRequestParameters;
 import chat.giga.model.completion.ChatFunction;
+import chat.giga.model.completion.ChatFunctionFewShotExample;
 import chat.giga.model.completion.ChatFunctionParameters;
 import chat.giga.model.completion.ChatFunctionParametersProperty;
 import chat.giga.model.completion.ChatMessage;
@@ -12,8 +13,10 @@ import chat.giga.model.completion.CompletionRequest;
 import chat.giga.model.completion.CompletionResponse;
 import chat.giga.model.completion.ResponseFormatType;
 import chat.giga.model.completion.Usage;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
+import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.data.message.TextContent;
@@ -36,6 +39,7 @@ import dev.langchain4j.model.chat.response.ChatResponseMetadata;
 import dev.langchain4j.model.output.FinishReason;
 import dev.langchain4j.model.output.TokenUsage;
 
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -143,12 +147,43 @@ public class GigaChatHelper {
                                                     .name(toolSpecification.name())
                                                     .description(toolSpecification.description())
                                                     .parameters(chatFunctionParameters)
+                                                    .fewShotExamples(getFewShotExamples(toolSpecification))
+                                                    .returnParameters(getReturnParameters(toolSpecification))
                                                     .build();
                                         })
                                         .collect(Collectors.toList())
                         ) : List.of()
                 )
                 .build();
+    }
+
+    private static ChatFunctionParameters getReturnParameters(ToolSpecification toolSpecification) {
+        try {
+            if (toolSpecification.metadata().get("return_parameters") != null) {
+                return JsonUtils.objectMapper()
+                        .convertValue(toolSpecification.metadata().get("return_parameters"), new TypeReference<>() {
+                        });
+            } else {
+                return null;
+            }
+        } catch (Exception ex) {
+            throw new RuntimeException("Failed to extract return_parameters parameter", ex);
+        }
+    }
+
+    private static Collection<? extends ChatFunctionFewShotExample> getFewShotExamples(
+            ToolSpecification toolSpecification) {
+        try {
+            if (toolSpecification.metadata().get("few_shot_examples") != null) {
+                return JsonUtils.objectMapper()
+                        .convertValue(toolSpecification.metadata().get("few_shot_examples"), new TypeReference<>() {
+                        });
+            } else {
+                return List.of();
+            }
+        } catch (Exception ex) {
+            throw new RuntimeException("Failed to extract few_shot_examples parameter", ex);
+        }
     }
 
     public static chat.giga.model.completion.ResponseFormat toResponseFormat(ResponseFormat responseFormat,
@@ -160,7 +195,8 @@ public class GigaChatHelper {
                         || jsonSchema.rootElement() instanceof JsonRawSchema)) {
                     throw new IllegalArgumentException(
                             "For GigaChat, the root element of the JSON Schema must be either a JsonObjectSchema or a JsonRawSchema, but it was: "
-                                    + jsonSchema.rootElement().getClass());
+                                    + (jsonSchema.rootElement() != null ? jsonSchema.rootElement().getClass()
+                                    : "null"));
                 }
                 Map<String, Object> schema = toMap(jsonSchema.rootElement(), strict);
                 return chat.giga.model.completion.ResponseFormat.builder()
