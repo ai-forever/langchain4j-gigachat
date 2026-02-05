@@ -10,7 +10,7 @@ repositories {
 }
 
 dependencies {
-    api("dev.langchain4j:langchain4j:1.10.0")
+    api("dev.langchain4j:langchain4j:1.11.0")
     api("chat.giga:gigachat-java:0.1.13")
 
     testImplementation(platform("org.junit:junit-bom:5.10.5"))
