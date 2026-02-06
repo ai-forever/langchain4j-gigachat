@@ -2,7 +2,6 @@ package chat.giga.langchain4j.utils;
 
 import chat.giga.langchain4j.GigaChatChatRequestParameters;
 import chat.giga.model.completion.ChatFunction;
-import chat.giga.model.completion.ChatFunctionFewShotExample;
 import chat.giga.model.completion.ChatFunctionParameters;
 import chat.giga.model.completion.ChatFunctionParametersProperty;
 import chat.giga.model.completion.ChatMessage;
@@ -147,8 +146,14 @@ public class GigaChatHelper {
                                                     .name(toolSpecification.name())
                                                     .description(toolSpecification.description())
                                                     .parameters(chatFunctionParameters)
-                                                    .fewShotExamples(getFewShotExamples(toolSpecification))
-                                                    .returnParameters(getReturnParameters(toolSpecification))
+                                                    .fewShotExamples(getMetadataValue(
+                                                            toolSpecification, "few_shot_examples",
+                                                            new TypeReference<>() {
+                                                            }, List.of()))
+                                                    .returnParameters(
+                                                            getMetadataValue(toolSpecification, "return_parameters",
+                                                                    new TypeReference<>() {
+                                                                    }, null))
                                                     .build();
                                         })
                                         .collect(Collectors.toList())
@@ -157,32 +162,16 @@ public class GigaChatHelper {
                 .build();
     }
 
-    private static ChatFunctionParameters getReturnParameters(ToolSpecification toolSpecification) {
+    private static <T> T getMetadataValue(ToolSpecification toolSpecification, String key,
+            TypeReference<T> typeReference, T defaultValue) {
         try {
-            if (toolSpecification.metadata().get("return_parameters") != null) {
-                return JsonUtils.objectMapper()
-                        .convertValue(toolSpecification.metadata().get("return_parameters"), new TypeReference<>() {
-                        });
-            } else {
-                return null;
+            Object value = toolSpecification.metadata().get(key);
+            if (value != null) {
+                return JsonUtils.objectMapper().convertValue(value, typeReference);
             }
+            return defaultValue;
         } catch (Exception ex) {
-            throw new RuntimeException("Failed to extract return_parameters parameter", ex);
-        }
-    }
-
-    private static Collection<? extends ChatFunctionFewShotExample> getFewShotExamples(
-            ToolSpecification toolSpecification) {
-        try {
-            if (toolSpecification.metadata().get("few_shot_examples") != null) {
-                return JsonUtils.objectMapper()
-                        .convertValue(toolSpecification.metadata().get("few_shot_examples"), new TypeReference<>() {
-                        });
-            } else {
-                return List.of();
-            }
-        } catch (Exception ex) {
-            throw new RuntimeException("Failed to extract few_shot_examples parameter", ex);
+            throw new RuntimeException("Failed to extract " + key + " parameter", ex);
         }
     }
 
