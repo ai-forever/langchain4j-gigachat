@@ -1,10 +1,10 @@
 package chat.giga.langchain4j;
 
 import chat.giga.client.auth.AuthClient;
-import chat.giga.client.auth.AuthClientBuilder;
 import chat.giga.http.client.HttpClientException;
+import chat.giga.http.client.JdkHttpClientBuilder;
+import chat.giga.http.client.SSL;
 import chat.giga.model.ModelName;
-import chat.giga.model.Scope;
 import dev.langchain4j.agent.tool.P;
 import dev.langchain4j.agent.tool.Tool;
 import dev.langchain4j.memory.ChatMemory;
@@ -24,18 +24,25 @@ public class SmsSenderAgentExample {
         GigaChatChatModel model = GigaChatChatModel.builder()
                 .maxRetries(3)
                 .defaultChatRequestParameters(GigaChatChatRequestParameters.builder()
-                        .modelName(ModelName.GIGA_CHAT_MAX_2)
+                        .modelName(ModelName.GIGA_CHAT_PRO_2)
                         .profanityCheck(false)
                         .build())
                 .verifySslCerts(false)
                 .logRequests(true)
                 .logResponses(true)
                 .authClient(AuthClient.builder()
-                        .withOAuth(AuthClientBuilder.OAuthBuilder.builder()
-                                .scope(Scope.GIGACHAT_API_PERS)
-                                .authKey("testkey")
+                        .withCertificatesAuth(new JdkHttpClientBuilder()
+                                .ssl(SSL.builder()
+                                        .truststorePassword(System.getenv("TRUST_PASSWORD"))
+                                        .trustStoreType("PKCS12")
+                                        .truststorePath(System.getenv("TRUST_PATH"))
+                                        .keystorePassword(System.getenv("KEY_PASSWORD"))
+                                        .keystoreType("PKCS12")
+                                        .keystorePath(System.getenv("KEY_PATH"))
+                                        .build())
                                 .build())
                         .build())
+                .apiUrl("https://gigachat-ift.sberdevices.delta.sbrf.ru/v1")
                 .build();
 
         ChatMemory chatMemory = MessageWindowChatMemory.builder()
@@ -77,7 +84,32 @@ public class SmsSenderAgentExample {
 
     static class SMSSender {
 
-        @Tool("Метод отправки sms сообщений")
+        @Tool(name = "sendSms", metadata = """
+                {
+                    "few_shot_examples": [
+                    {
+                        "request": "Отправь смс на номер",
+                        "params" : {
+                                       "recipient": "+79683331211",
+                                       "message": "Как Дела"
+                                   }
+                    }
+                    ],
+                    "return_parameters": {
+                            "type": "object",
+                            "properties": {
+                                "status": {
+                                    "type": "string",
+                                    "description": "Статус отправки Ok или Error"
+                                },
+                                "message": {
+                                    "type": "integer",
+                                    "description": "Детальное сообщение об отправки"
+                                }
+                            }
+                        }
+                    }
+                """)
         SendSmsResult sendSms(
                 @P("Номер телефона получателя") String recipient,
                 @P("Содержимое сообщения") String message) {

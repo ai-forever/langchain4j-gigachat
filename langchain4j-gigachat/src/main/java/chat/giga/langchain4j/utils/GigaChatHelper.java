@@ -12,8 +12,10 @@ import chat.giga.model.completion.CompletionRequest;
 import chat.giga.model.completion.CompletionResponse;
 import chat.giga.model.completion.ResponseFormatType;
 import chat.giga.model.completion.Usage;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
+import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.data.message.TextContent;
@@ -143,12 +145,33 @@ public class GigaChatHelper {
                                                     .name(toolSpecification.name())
                                                     .description(toolSpecification.description())
                                                     .parameters(chatFunctionParameters)
+                                                    .fewShotExamples(getMetadataValue(
+                                                            toolSpecification, "few_shot_examples",
+                                                            new TypeReference<>() {
+                                                            }, List.of()))
+                                                    .returnParameters(
+                                                            getMetadataValue(toolSpecification, "return_parameters",
+                                                                    new TypeReference<>() {
+                                                                    }, null))
                                                     .build();
                                         })
                                         .collect(Collectors.toList())
                         ) : List.of()
                 )
                 .build();
+    }
+
+    private static <T> T getMetadataValue(ToolSpecification toolSpecification, String key,
+            TypeReference<T> typeReference, T defaultValue) {
+        try {
+            Object value = toolSpecification.metadata().get(key);
+            if (value != null) {
+                return JsonUtils.objectMapper().convertValue(value, typeReference);
+            }
+            return defaultValue;
+        } catch (Exception ex) {
+            throw new RuntimeException("Failed to extract " + key + " parameter", ex);
+        }
     }
 
     public static chat.giga.model.completion.ResponseFormat toResponseFormat(ResponseFormat responseFormat,
@@ -160,7 +183,8 @@ public class GigaChatHelper {
                         || jsonSchema.rootElement() instanceof JsonRawSchema)) {
                     throw new IllegalArgumentException(
                             "For GigaChat, the root element of the JSON Schema must be either a JsonObjectSchema or a JsonRawSchema, but it was: "
-                                    + jsonSchema.rootElement().getClass());
+                                    + (jsonSchema.rootElement() != null ? jsonSchema.rootElement().getClass()
+                                    : "null"));
                 }
                 Map<String, Object> schema = toMap(jsonSchema.rootElement(), strict);
                 return chat.giga.model.completion.ResponseFormat.builder()

@@ -171,6 +171,73 @@ class GigaChatHelperTest {
     }
 
     @Test
+    void testConvertToChatFunctionParametersWithFewShotExamples() throws JsonProcessingException {
+
+        var chatRequest = chatRequest()
+                .toolSpecifications(ToolSpecification.builder()
+                        .parameters(JsonObjectSchema.builder()
+                                .addProperties(Map.of("key", JsonObjectSchema.builder().build()))
+                                .build())
+                        .name("test")
+                        .metadata(Map.of("few_shot_examples", JsonUtils.objectMapper().readTree("""
+                                [
+                                    {
+                                        "request": "Отправь смс на номер",
+                                        "params" : {
+                                                       "recipient": "+79683331211",
+                                                       "message": "Как Дела"
+                                                   }
+                                    }
+                                ]
+                                """)))
+                        .build())
+                .parameters(null).build();
+        CompletionRequest request = GigaChatHelper.toRequest(chatRequest);
+
+        assertThat(request.functions().get(0).fewShotExamples().get(0)).satisfies(
+                cr -> {
+
+                    assertThat(cr.request()).isEqualTo("Отправь смс на номер");
+                    assertThat(cr.params().get("recipient")).isEqualTo("+79683331211");
+                    assertThat(cr.params().get("message")).isEqualTo("Как Дела");
+                }
+        );
+    }
+
+    @Test
+    void testConvertToChatFunctionParametersWithReturnParameters() throws JsonProcessingException {
+
+        var chatRequest = chatRequest()
+                .toolSpecifications(ToolSpecification.builder()
+                        .parameters(JsonObjectSchema.builder()
+                                .addProperties(Map.of("key", JsonObjectSchema.builder().build()))
+                                .build())
+                        .name("test")
+                        .metadata(Map.of("return_parameters", JsonUtils.objectMapper().readTree("""
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "status": {
+                                            "type": "string",
+                                            "description": "Статус отправки Ok или Error"
+                                        }
+                                    }
+                                }
+                                """)))
+                        .build())
+                .parameters(null).build();
+        CompletionRequest request = GigaChatHelper.toRequest(chatRequest);
+
+        assertThat(request.functions().get(0).returnParameters()).satisfies(
+                cr -> {
+                    assertThat(cr.type()).isEqualTo("object");
+                    assertThat(cr.properties().get("status").type()).isEqualTo("string");
+                    assertThat(cr.properties().get("status").description()).isEqualTo("Статус отправки Ok или Error");
+                }
+        );
+    }
+
+    @Test
     void testConvertToChatFunctionParametersWithJsonArraySchema() {
         var chatRequest = chatRequest()
                 .toolSpecifications(ToolSpecification.builder()
