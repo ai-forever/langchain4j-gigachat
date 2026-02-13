@@ -37,6 +37,7 @@ public class GigaChatImageModel implements ImageModel {
                               boolean logResponses,
                               boolean verifySslCerts,
                               Integer maxRetries,
+            Integer maxRetriesOnAuthError,
                               List<ChatModelListener> listeners,
             GigaChatChatRequestParameters defaultChatRequestParameters) {
         chatModel = GigaChatChatModel.builder()
@@ -51,6 +52,7 @@ public class GigaChatImageModel implements ImageModel {
                 .listeners(listeners)
                 .defaultChatRequestParameters(defaultChatRequestParameters)
                 .maxRetries(maxRetries)
+                .maxRetriesOnAuthError(maxRetriesOnAuthError)
                 .build();
 
         this.client = GigaChatClient.builder()
@@ -62,6 +64,7 @@ public class GigaChatImageModel implements ImageModel {
                 .logRequests(logRequests)
                 .logResponses(logResponses)
                 .verifySslCerts(verifySslCerts)
+                .maxRetriesOnAuthError(maxRetriesOnAuthError)
                 .build();
 
         this.maxRetries = getOrDefault(maxRetries, 1);

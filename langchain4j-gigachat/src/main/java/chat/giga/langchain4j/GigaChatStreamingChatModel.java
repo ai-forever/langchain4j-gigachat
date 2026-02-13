@@ -53,6 +53,7 @@ public class GigaChatStreamingChatModel implements StreamingChatModel {
             List<ChatModelListener> listeners,
             ResponseFormat responseFormat,
             Boolean strictJsonSchema,
+            Integer maxRetriesOnAuthError,
             GigaChatChatRequestParameters defaultChatRequestParameters) {
 
         this.asyncClient = GigaChatClientAsync.builder()
@@ -64,6 +65,7 @@ public class GigaChatStreamingChatModel implements StreamingChatModel {
                 .logRequests(logRequests)
                 .logResponses(logResponses)
                 .verifySslCerts(verifySslCerts)
+                .maxRetriesOnAuthError(maxRetriesOnAuthError)
                 .build();
         this.listeners = copy(listeners);
         ChatRequestParameters commonParameters;
