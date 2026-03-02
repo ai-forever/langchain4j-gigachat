@@ -85,7 +85,7 @@ public class GigaChatImageModel implements ImageModel {
 
                 var file = withRetry(() -> client.downloadFile(fileId, null), maxRetries);
 
-                var base64FileData = new String(Base64.getEncoder().encode(file));
+                var base64FileData = Base64.getEncoder().encodeToString(file);
 
                 return Response.from(Image.builder().base64Data(base64FileData).build(), response.tokenUsage());
             } else {
