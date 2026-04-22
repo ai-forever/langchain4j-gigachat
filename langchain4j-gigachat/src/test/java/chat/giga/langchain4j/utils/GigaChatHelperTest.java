@@ -22,6 +22,7 @@ import dev.langchain4j.model.chat.request.json.JsonObjectSchema;
 import dev.langchain4j.model.chat.request.json.JsonRawSchema;
 import dev.langchain4j.model.chat.request.json.JsonSchema;
 import dev.langchain4j.model.chat.request.json.JsonStringSchema;
+import dev.langchain4j.model.chat.request.json.JsonAnyOfSchema;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.output.FinishReason;
 import dev.langchain4j.model.output.TokenUsage;
@@ -493,5 +494,103 @@ class GigaChatHelperTest {
         assertEquals(chat.giga.model.completion.ResponseFormatType.JSON_SCHEMA, responseFormatConverted.type());
         assertEquals(JsonUtils.objectMapper().readTree(raw_schema),
                 JsonUtils.objectMapper().convertValue(responseFormatConverted.schema(), JsonNode.class));
+    }
+
+    @Test
+    void testToRequestWithJsonAnyOfSchemaToolParameter() {
+        JsonObjectSchema objectSchema = JsonObjectSchema.builder()
+                .addStringProperty("name")
+                .addProperty("value", JsonAnyOfSchema.builder()
+                        .anyOf(List.of(
+                                JsonStringSchema.builder().build(),
+                                JsonIntegerSchema.builder().build()))
+                        .build())
+                .required("name")
+                .build();
+
+        CompletionRequest request = GigaChatHelper.toRequest(ChatRequest.builder()
+                .messages(UserMessage.from("hello"))
+                .toolSpecifications(ToolSpecification.builder()
+                        .name("testFunction")
+                        .parameters(objectSchema)
+                        .build())
+                .build());
+
+        assertNotNull(request);
+        assertNotNull(request.functions());
+        assertEquals(1, request.functions().size());
+        chat.giga.model.completion.ChatFunction function = request.functions().get(0);
+        assertEquals("testFunction", function.name());
+        assertNotNull(function.parameters());
+        assertNotNull(function.parameters().properties());
+        assertNotNull(function.parameters().properties().get("value"));
+        assertNotNull(function.parameters().properties().get("value").anyOf());
+        assertEquals(2, function.parameters().properties().get("value").anyOf().size());
+        assertEquals("string", function.parameters().properties().get("value").anyOf().get(0).type());
+        assertEquals("integer", function.parameters().properties().get("value").anyOf().get(1).type());
+    }
+
+    @Test
+    void testToRequestWithJsonRawSchemaToolParameter() {
+        String rawPropSchema = "{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"age\":{\"type\":\"integer\"}}}";
+        JsonObjectSchema objectSchema = JsonObjectSchema.builder()
+                .addStringProperty("id")
+                .addProperty("data", JsonRawSchema.builder().schema(rawPropSchema).build())
+                .required("id")
+                .build();
+
+        CompletionRequest request = GigaChatHelper.toRequest(ChatRequest.builder()
+                .messages(UserMessage.from("hello"))
+                .toolSpecifications(ToolSpecification.builder()
+                        .name("testFunction")
+                        .parameters(objectSchema)
+                        .build())
+                .build());
+
+        assertNotNull(request);
+        assertNotNull(request.functions());
+        assertEquals(1, request.functions().size());
+        chat.giga.model.completion.ChatFunction function = request.functions().get(0);
+        assertEquals("testFunction", function.name());
+        assertNotNull(function.parameters().properties().get("data"));
+        assertEquals("object", function.parameters().properties().get("data").type());
+        assertNotNull(function.parameters().properties().get("data").properties());
+        assertNotNull(function.parameters().properties().get("data").properties().get("name"));
+        assertEquals("string", function.parameters().properties().get("data").properties().get("name").type());
+        assertNotNull(function.parameters().properties().get("data").properties().get("age"));
+        assertEquals("integer", function.parameters().properties().get("data").properties().get("age").type());
+    }
+
+    @Test
+    void testToRequestWithAnyOfSchemaAsResponseFormatRoot() throws JsonProcessingException {
+        ResponseFormat responseFormat = ResponseFormat.builder()
+                .type(JSON)
+                .jsonSchema(JsonSchema.builder()
+                        .name("Result")
+                        .rootElement(JsonAnyOfSchema.builder()
+                                .anyOf(List.of(
+                                        JsonObjectSchema.builder()
+                                                .addStringProperty("text")
+                                                .build(),
+                                        JsonObjectSchema.builder()
+                                                .addIntegerProperty("number")
+                                                .build()))
+                                .build())
+                        .build())
+                .build();
+
+        CompletionRequest request = GigaChatHelper.toRequest(ChatRequest.builder()
+                .parameters(GigaChatChatRequestParameters.builder()
+                        .modelName("testModel")
+                        .responseFormat(responseFormat)
+                        .strictJsonSchema(false)
+                        .build())
+                .messages(UserMessage.from("hello"))
+                .build());
+
+        assertNotNull(request);
+        assertNotNull(request.responseFormat());
+        assertEquals(chat.giga.model.completion.ResponseFormatType.JSON_SCHEMA, request.responseFormat().type());
+        assertNotNull(request.responseFormat().schema());
     }
 }
