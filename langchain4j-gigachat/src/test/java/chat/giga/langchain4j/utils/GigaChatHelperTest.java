@@ -34,6 +34,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import static chat.giga.langchain4j.TestData.chatRequest;
 import static chat.giga.langchain4j.TestData.completionChunkNullFieldsResponse;
@@ -526,8 +527,10 @@ class GigaChatHelperTest {
         assertNotNull(function.parameters().properties().get("value"));
         assertNotNull(function.parameters().properties().get("value").anyOf());
         assertEquals(2, function.parameters().properties().get("value").anyOf().size());
-        assertEquals("string", function.parameters().properties().get("value").anyOf().get(0).type());
-        assertEquals("integer", function.parameters().properties().get("value").anyOf().get(1).type());
+        List<String> anyOfTypes = function.parameters().properties().get("value").anyOf().stream()
+                .map(chat.giga.model.completion.ChatFunctionParametersProperty::type)
+                .collect(Collectors.toList());
+        assertThat(anyOfTypes).containsExactlyInAnyOrder("string", "integer");
     }
 
     @Test

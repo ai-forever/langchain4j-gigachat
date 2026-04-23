@@ -357,9 +357,15 @@ public class GigaChatHelper {
                     .items(itemsMap)
                     .build();
         } else if (schemaElement instanceof JsonAnyOfSchema jsonAnyOfSchema) {
+            List<JsonSchemaElement> anyOfList = jsonAnyOfSchema.anyOf();
+            if (anyOfList == null) {
+                return ChatFunctionParametersProperty.builder()
+                        .description(jsonAnyOfSchema.description())
+                        .build();
+            }
             return ChatFunctionParametersProperty.builder()
                     .description(jsonAnyOfSchema.description())
-                    .anyOf(jsonAnyOfSchema.anyOf().stream()
+                    .anyOf(anyOfList.stream()
                             .map(GigaChatHelper::convertToChatFunctionParametersProperty)
                             .collect(Collectors.toList()))
                     .build();
@@ -376,8 +382,8 @@ public class GigaChatHelper {
     private static ChatFunctionParametersProperty convertRawSchemaToProperty(JsonRawSchema jsonRawSchema) {
         try {
             ObjectMapper mapper = JsonUtils.objectMapper();
-            @SuppressWarnings("unchecked")
-            Map<String, Object> rawMap = mapper.readValue(jsonRawSchema.schema(), Map.class);
+            Map<String, Object> rawMap = mapper.readValue(jsonRawSchema.schema(), new TypeReference<>() {
+            });
             ChatFunctionParametersProperty.ChatFunctionParametersPropertyBuilder builder =
                     ChatFunctionParametersProperty.builder();
             if (rawMap.containsKey("type")) {
@@ -394,25 +400,24 @@ public class GigaChatHelper {
             }
             if (rawMap.containsKey("properties")) {
                 Object propertiesObj = rawMap.get("properties");
-                if (propertiesObj instanceof Map) {
-                    @SuppressWarnings("unchecked")
-                    Map<String, Map<String, Object>> propsMap =
-                            (Map<String, Map<String, Object>>) propertiesObj;
+                if (propertiesObj instanceof Map<?, ?> rawPropsMap) {
                     Map<String, ChatFunctionParametersProperty> convertedProps = new LinkedHashMap<>();
-                    for (Map.Entry<String, Map<String, Object>> entry : propsMap.entrySet()) {
-                        convertedProps.put(entry.getKey(),
-                                convertRawPropertyMapToProperty(entry.getValue(), 1));
+                    for (Map.Entry<?, ?> entry : rawPropsMap.entrySet()) {
+                        if (entry.getKey() instanceof String key && entry.getValue() instanceof Map<?, ?> valueMap) {
+                            Map<String, Object> typedValueMap = toStringObjectMap(valueMap);
+                            convertedProps.put(key,
+                                    convertRawPropertyMapToProperty(typedValueMap, 1));
+                        }
                     }
                     builder.properties(convertedProps);
                 }
             }
             if (rawMap.containsKey("anyOf")) {
                 Object anyOfObj = rawMap.get("anyOf");
-                if (anyOfObj instanceof List) {
-                    @SuppressWarnings("unchecked")
-                    List<Map<String, Object>> anyOfList = (List<Map<String, Object>>) anyOfObj;
-                    List<ChatFunctionParametersProperty> anyOfProps = anyOfList.stream()
-                            .map(map -> convertRawPropertyMapToProperty(map, 1))
+                if (anyOfObj instanceof List<?> rawAnyOfList) {
+                    List<ChatFunctionParametersProperty> anyOfProps = rawAnyOfList.stream()
+                            .filter(item -> item instanceof Map<?, ?>)
+                            .map(item -> convertRawPropertyMapToProperty(toStringObjectMap((Map<?, ?>) item), 1))
                             .collect(Collectors.toList());
                     builder.anyOf(anyOfProps);
                 }
@@ -454,45 +459,55 @@ public class GigaChatHelper {
         }
         if (propMap.containsKey("enum")) {
             Object enumObj = propMap.get("enum");
-            if (enumObj instanceof List) {
-                @SuppressWarnings("unchecked")
-                List<String> enumValues = (List<String>) enumObj;
+            if (enumObj instanceof List<?> rawEnumList) {
+                List<String> enumValues = rawEnumList.stream()
+                        .filter(item -> item instanceof String)
+                        .map(String.class::cast)
+                        .collect(Collectors.toList());
                 builder.enums(enumValues);
             }
         }
         if (propMap.containsKey("properties")) {
             Object propertiesObj = propMap.get("properties");
-            if (propertiesObj instanceof Map) {
-                @SuppressWarnings("unchecked")
-                Map<String, Map<String, Object>> nestedProps =
-                        (Map<String, Map<String, Object>>) propertiesObj;
+            if (propertiesObj instanceof Map<?, ?> rawPropsMap) {
                 Map<String, ChatFunctionParametersProperty> convertedProps = new LinkedHashMap<>();
-                for (Map.Entry<String, Map<String, Object>> entry : nestedProps.entrySet()) {
-                    convertedProps.put(entry.getKey(),
-                            convertRawPropertyMapToProperty(entry.getValue(), depth + 1));
+                for (Map.Entry<?, ?> entry : rawPropsMap.entrySet()) {
+                    if (entry.getKey() instanceof String key && entry.getValue() instanceof Map<?, ?> valueMap) {
+                        Map<String, Object> typedValueMap = toStringObjectMap(valueMap);
+                        convertedProps.put(key,
+                                convertRawPropertyMapToProperty(typedValueMap, depth + 1));
+                    }
                 }
                 builder.properties(convertedProps);
             }
         }
         if (propMap.containsKey("items")) {
             Object itemsObj = propMap.get("items");
-            if (itemsObj instanceof Map) {
-                @SuppressWarnings("unchecked")
-                Map<String, Object> itemsMap = (Map<String, Object>) itemsObj;
+            if (itemsObj instanceof Map<?, ?> rawItemsMap) {
+                Map<String, Object> itemsMap = toStringObjectMap(rawItemsMap);
                 builder.items(itemsMap);
             }
         }
         if (propMap.containsKey("anyOf")) {
             Object anyOfObj = propMap.get("anyOf");
-            if (anyOfObj instanceof List) {
-                @SuppressWarnings("unchecked")
-                List<Map<String, Object>> anyOfList = (List<Map<String, Object>>) anyOfObj;
-                List<ChatFunctionParametersProperty> anyOfProps = anyOfList.stream()
-                        .map(map -> convertRawPropertyMapToProperty(map, depth + 1))
+            if (anyOfObj instanceof List<?> rawAnyOfList) {
+                List<ChatFunctionParametersProperty> anyOfProps = rawAnyOfList.stream()
+                        .filter(item -> item instanceof Map<?, ?>)
+                        .map(item -> convertRawPropertyMapToProperty(toStringObjectMap((Map<?, ?>) item), depth + 1))
                         .collect(Collectors.toList());
                 builder.anyOf(anyOfProps);
             }
         }
         return builder.build();
+    }
+
+    private static Map<String, Object> toStringObjectMap(Map<?, ?> rawMap) {
+        Map<String, Object> result = new LinkedHashMap<>();
+        for (Map.Entry<?, ?> entry : rawMap.entrySet()) {
+            if (entry.getKey() instanceof String key) {
+                result.put(key, entry.getValue());
+            }
+        }
+        return result;
     }
 }
