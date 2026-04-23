@@ -23,6 +23,7 @@ import dev.langchain4j.model.chat.request.json.JsonRawSchema;
 import dev.langchain4j.model.chat.request.json.JsonSchema;
 import dev.langchain4j.model.chat.request.json.JsonStringSchema;
 import dev.langchain4j.model.chat.request.json.JsonAnyOfSchema;
+import dev.langchain4j.model.chat.request.json.JsonReferenceSchema;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.output.FinishReason;
 import dev.langchain4j.model.output.TokenUsage;
@@ -719,5 +720,231 @@ class GigaChatHelperTest {
         var level3 = level2.properties().get("level3");
         assertNotNull(level3);
         assertEquals("string", level3.type());
+    }
+
+    @Test
+    void testToRequestWithJsonReferenceSchemaToolParameter() {
+        JsonObjectSchema successSchema = JsonObjectSchema.builder()
+                .description("Схема для успешного результата")
+                .addProperty("results", JsonArraySchema.builder()
+                        .description("Список найденных элементов")
+                        .items(JsonStringSchema.builder().build())
+                        .build())
+                .addProperty("confidence", JsonNumberSchema.builder()
+                        .description("Уровень уверенности в ответе")
+                        .build())
+                .required("results", "confidence")
+                .build();
+
+        JsonObjectSchema errorSchema = JsonObjectSchema.builder()
+                .description("Схема для ошибки или уточнения")
+                .addStringProperty("reason", "Почему не удалось найти ответ")
+                .addStringProperty("suggestion", "Что пользователю стоит уточнить")
+                .required("reason", "suggestion")
+                .build();
+
+        JsonObjectSchema objectSchema = JsonObjectSchema.builder()
+                .description("Схема финального ответа")
+                .addProperty("output", JsonAnyOfSchema.builder()
+                        .description("Результат")
+                        .anyOf(List.of(
+                                JsonReferenceSchema.builder()
+                                        .reference("SuccessResponse")
+                                        .build(),
+                                JsonReferenceSchema.builder()
+                                        .reference("ErrorResponse")
+                                        .build()))
+                        .build())
+                .required("output")
+                .definitions(Map.of(
+                        "SuccessResponse", successSchema,
+                        "ErrorResponse", errorSchema))
+                .build();
+
+        CompletionRequest request = GigaChatHelper.toRequest(ChatRequest.builder()
+                .messages(UserMessage.from("hello"))
+                .toolSpecifications(ToolSpecification.builder()
+                        .name("testFunction")
+                        .parameters(objectSchema)
+                        .build())
+                .build());
+
+        assertNotNull(request);
+        chat.giga.model.completion.ChatFunction function = request.functions().get(0);
+        assertEquals("testFunction", function.name());
+        assertNotNull(function.parameters());
+        assertNotNull(function.parameters().definitions());
+        assertEquals(2, function.parameters().definitions().size());
+        assertNotNull(function.parameters().definitions().get("SuccessResponse"));
+        assertEquals("object", function.parameters().definitions().get("SuccessResponse").type());
+        assertNotNull(function.parameters().definitions().get("ErrorResponse"));
+        assertEquals("object", function.parameters().definitions().get("ErrorResponse").type());
+
+        assertNotNull(function.parameters().properties().get("output"));
+        var outputProp = function.parameters().properties().get("output");
+        assertNotNull(outputProp.anyOf());
+        assertEquals(2, outputProp.anyOf().size());
+
+        var successRef = outputProp.anyOf().get(0);
+        assertEquals("#/$defs/SuccessResponse", successRef.reference());
+
+        var errorRef = outputProp.anyOf().get(1);
+        assertEquals("#/$defs/ErrorResponse", errorRef.reference());
+    }
+
+    @Test
+    void testToRequestWithJsonReferenceSchemaUnresolved() {
+        JsonObjectSchema objectSchema = JsonObjectSchema.builder()
+                .addProperty("ref", JsonReferenceSchema.builder()
+                        .reference("UnknownDefinition")
+                        .build())
+                .build();
+
+        CompletionRequest request = GigaChatHelper.toRequest(ChatRequest.builder()
+                .messages(UserMessage.from("hello"))
+                .toolSpecifications(ToolSpecification.builder()
+                        .name("testFunction")
+                        .parameters(objectSchema)
+                        .build())
+                .build());
+
+        assertNotNull(request);
+        var refProp = request.functions().get(0).parameters().properties().get("ref");
+        assertNotNull(refProp);
+        assertEquals("#/$defs/UnknownDefinition", refProp.reference());
+        assertNull(refProp.type());
+    }
+
+    @Test
+    void testToRequestWithJsonRawSchemaWithRefsAndDefs() {
+        String rawSchema = """
+                {
+                    "type": "object",
+                    "description": "Схема финального ответа",
+                    "properties": {
+                        "output": {
+                            "description": "Результат",
+                            "anyOf": [
+                                {"$ref": "#/$defs/SuccessResponse"},
+                                {"$ref": "#/$defs/ErrorResponse"}
+                            ]
+                        }
+                    },
+                    "required": ["output"],
+                    "$defs": {
+                        "SuccessResponse": {
+                            "type": "object",
+                            "description": "Схема для успешного результата",
+                            "properties": {
+                                "results": {
+                                    "type": "array",
+                                    "description": "Список найденных элементов",
+                                    "items": {"type": "string"}
+                                },
+                                "confidence": {
+                                    "type": "number",
+                                    "description": "Уровень уверенности в ответе"
+                                }
+                            },
+                            "required": ["results", "confidence"]
+                        },
+                        "ErrorResponse": {
+                            "type": "object",
+                            "description": "Схема для ошибки или уточнения",
+                            "properties": {
+                                "reason": {
+                                    "type": "string",
+                                    "description": "Почему не удалось найти ответ"
+                                },
+                                "suggestion": {
+                                    "type": "string",
+                                    "description": "Что пользователю стоит уточнить"
+                                }
+                            },
+                            "required": ["reason", "suggestion"]
+                        }
+                    }
+                }
+                """;
+        JsonObjectSchema objectSchema = JsonObjectSchema.builder()
+                .addStringProperty("id")
+                .addProperty("data", JsonRawSchema.builder().schema(rawSchema).build())
+                .required("id")
+                .build();
+
+        CompletionRequest request = GigaChatHelper.toRequest(ChatRequest.builder()
+                .messages(UserMessage.from("hello"))
+                .toolSpecifications(ToolSpecification.builder()
+                        .name("testFunction")
+                        .parameters(objectSchema)
+                        .build())
+                .build());
+
+        assertNotNull(request);
+        chat.giga.model.completion.ChatFunction function = request.functions().get(0);
+        var dataProp = function.parameters().properties().get("data");
+        assertNotNull(dataProp);
+        assertEquals("object", dataProp.type());
+        assertNotNull(dataProp.properties());
+        assertNotNull(dataProp.properties().get("output"));
+
+        var outputProp = dataProp.properties().get("output");
+        assertNotNull(outputProp.anyOf());
+        assertEquals(2, outputProp.anyOf().size());
+
+        var successRef = outputProp.anyOf().get(0);
+        assertEquals("object", successRef.type());
+        assertNotNull(successRef.properties());
+        assertNotNull(successRef.properties().get("results"));
+        assertEquals("array", successRef.properties().get("results").type());
+        assertNotNull(successRef.properties().get("confidence"));
+        assertEquals("number", successRef.properties().get("confidence").type());
+
+        var errorRef = outputProp.anyOf().get(1);
+        assertEquals("object", errorRef.type());
+        assertNotNull(errorRef.properties());
+        assertNotNull(errorRef.properties().get("reason"));
+        assertEquals("string", errorRef.properties().get("reason").type());
+        assertNotNull(errorRef.properties().get("suggestion"));
+        assertEquals("string", errorRef.properties().get("suggestion").type());
+    }
+
+    @Test
+    void testToRequestWithJsonAnyOfSchemaContainingReferencesAndDefs() {
+        JsonObjectSchema successSchema = JsonObjectSchema.builder()
+                .addStringProperty("text")
+                .build();
+        JsonObjectSchema errorSchema = JsonObjectSchema.builder()
+                .addIntegerProperty("code")
+                .build();
+
+        JsonObjectSchema objectSchema = JsonObjectSchema.builder()
+                .addProperty("result", JsonAnyOfSchema.builder()
+                        .anyOf(List.of(
+                                JsonReferenceSchema.builder().reference("Success").build(),
+                                JsonReferenceSchema.builder().reference("Error").build()))
+                        .build())
+                .definitions(Map.of("Success", successSchema, "Error", errorSchema))
+                .build();
+
+        CompletionRequest request = GigaChatHelper.toRequest(ChatRequest.builder()
+                .messages(UserMessage.from("hello"))
+                .toolSpecifications(ToolSpecification.builder()
+                        .name("testFunction")
+                        .parameters(objectSchema)
+                        .build())
+                .build());
+
+        assertNotNull(request);
+        assertNotNull(request.functions().get(0).parameters().definitions());
+        assertEquals(2, request.functions().get(0).parameters().definitions().size());
+        assertNotNull(request.functions().get(0).parameters().definitions().get("Success"));
+        assertNotNull(request.functions().get(0).parameters().definitions().get("Error"));
+
+        var resultProp = request.functions().get(0).parameters().properties().get("result");
+        assertNotNull(resultProp.anyOf());
+        assertEquals(2, resultProp.anyOf().size());
+        assertEquals("#/$defs/Success", resultProp.anyOf().get(0).reference());
+        assertEquals("#/$defs/Error", resultProp.anyOf().get(1).reference());
     }
 }
