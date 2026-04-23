@@ -412,6 +412,22 @@ public class GigaChatHelper {
                     builder.properties(convertedProps);
                 }
             }
+            if (rawMap.containsKey("enum")) {
+                Object enumObj = rawMap.get("enum");
+                if (enumObj instanceof List<?> rawEnumList) {
+                    List<String> enumValues = rawEnumList.stream()
+                            .filter(item -> item instanceof String)
+                            .map(String.class::cast)
+                            .collect(Collectors.toList());
+                    builder.enums(enumValues);
+                }
+            }
+            if (rawMap.containsKey("items")) {
+                Object itemsObj = rawMap.get("items");
+                if (itemsObj instanceof Map<?, ?> rawItemsMap) {
+                    builder.items(toStringObjectMap(rawItemsMap));
+                }
+            }
             if (rawMap.containsKey("anyOf")) {
                 Object anyOfObj = rawMap.get("anyOf");
                 if (anyOfObj instanceof List<?> rawAnyOfList) {

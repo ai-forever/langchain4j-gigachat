@@ -609,9 +609,6 @@ class GigaChatHelperTest {
 
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () ->
                 GigaChatHelper.toRequest(ChatRequest.builder()
-                        .parameters(GigaChatChatRequestParameters.builder()
-                                .modelName("testModel")
-                                .build())
                         .messages(UserMessage.from("hello"))
                         .toolSpecifications(ToolSpecification.builder()
                                 .name("testFunction")
@@ -632,9 +629,6 @@ class GigaChatHelperTest {
                 .build();
 
         CompletionRequest request = GigaChatHelper.toRequest(ChatRequest.builder()
-                .parameters(GigaChatChatRequestParameters.builder()
-                        .modelName("testModel")
-                        .build())
                 .messages(UserMessage.from("hello"))
                 .toolSpecifications(ToolSpecification.builder()
                         .name("testFunction")
@@ -650,9 +644,10 @@ class GigaChatHelperTest {
         assertNotNull(function.parameters().properties().get("arrayData"));
         assertEquals("array", function.parameters().properties().get("arrayData").type());
         assertNotNull(function.parameters().properties().get("arrayData").items());
-        assertEquals(1, function.parameters().properties().get("arrayData").items().size());
+        assertEquals(2, function.parameters().properties().get("arrayData").items().size());
         assertNotNull(function.parameters().properties().get("arrayData").items().get("type"));
         assertEquals("string", function.parameters().properties().get("arrayData").items().get("type"));
+        assertEquals("A string item", function.parameters().properties().get("arrayData").items().get("description"));
     }
 
     @Test
@@ -665,9 +660,6 @@ class GigaChatHelperTest {
                 .build();
 
         CompletionRequest request = GigaChatHelper.toRequest(ChatRequest.builder()
-                .parameters(GigaChatChatRequestParameters.builder()
-                        .modelName("testModel")
-                        .build())
                 .messages(UserMessage.from("hello"))
                 .toolSpecifications(ToolSpecification.builder()
                         .name("testFunction")
@@ -698,9 +690,6 @@ class GigaChatHelperTest {
                 .build();
 
         CompletionRequest request = GigaChatHelper.toRequest(ChatRequest.builder()
-                .parameters(GigaChatChatRequestParameters.builder()
-                        .modelName("testModel")
-                        .build())
                 .messages(UserMessage.from("hello"))
                 .toolSpecifications(ToolSpecification.builder()
                         .name("testFunction")
