@@ -22,10 +22,10 @@ import java.util.Set;
 
 import static chat.giga.langchain4j.utils.GigaChatHelper.toRequest;
 import static chat.giga.langchain4j.utils.GigaChatHelper.toResponse;
-import static dev.langchain4j.internal.RetryUtils.withRetry;
-import static dev.langchain4j.internal.Utils.copy;
 import static chat.giga.langchain4j.utils.GigaChatHelperV2.toRequestV2;
 import static chat.giga.langchain4j.utils.GigaChatHelperV2.toResponseV2;
+import static dev.langchain4j.internal.RetryUtils.withRetry;
+import static dev.langchain4j.internal.Utils.copy;
 import static dev.langchain4j.internal.Utils.firstNotNull;
 import static dev.langchain4j.internal.Utils.getOrDefault;
 import static dev.langchain4j.model.chat.Capability.RESPONSE_FORMAT_JSON_SCHEMA;
@@ -39,13 +39,46 @@ import static dev.langchain4j.model.chat.Capability.RESPONSE_FORMAT_JSON_SCHEMA;
  */
 public class GigaChatChatModel implements ChatModel {
 
+    /**
+     * Клиент для работы с GigaChat API
+     */
     private final GigaChatClient client;
+
+    /** Максимальное количество повторных попыток при ошибках сети */
     private final Integer maxRetries;
+
+    /** Слушатели событий модели */
     private final List<ChatModelListener> listeners;
+
+    /** Поддерживаемые возможности модели */
     private final Set<Capability> supportedCapabilities;
+
+    /** Параметры запроса по умолчанию */
     private final GigaChatChatRequestParameters defaultChatRequestParameters;
+
+    /** Флаг использования API v2 */
     private final Boolean useV2Completions;
 
+    /**
+     * Создает экземпляр GigaChatChatModel с использованием builder pattern.
+     *
+     * @param apiHttpClient HTTP-клиент для API запросов (опционально)
+     * @param authClient клиент аутентификации для получения токенов доступа
+     * @param readTimeout таймаут чтения в миллисекундах (опционально)
+     * @param connectTimeout таймаут подключения в миллисекундах (опционально)
+     * @param apiUrl URL API GigaChat (опционально, по умолчанию используется официальный эндпоинт)
+     * @param logRequests флаг логирования исходящих запросов
+     * @param logResponses флаг логирования входящих ответов
+     * @param verifySslCerts флаг проверки SSL сертификатов
+     * @param maxRetries максимальное количество повторных попыток при ошибках сети
+     * @param maxRetriesOnAuthError максимальное количество повторных попыток при ошибках аутентификации
+     * @param listeners слушатели событий модели
+     * @param responseFormat формат ответа модели (JSON schema или текст)
+     * @param strictJsonSchema флаг строгой валидации JSON схемы
+     * @param supportedCapabilities поддерживаемые возможности модели
+     * @param defaultChatRequestParameters параметры запроса по умолчанию
+     * @param useV2Completions флаг использования API v2
+     */
     @Builder
     public GigaChatChatModel(HttpClient apiHttpClient,
                              AuthClient authClient,

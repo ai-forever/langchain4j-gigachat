@@ -1,11 +1,22 @@
 package chat.giga.langchain4j.utils;
 
 import chat.giga.langchain4j.GigaChatChatRequestParameters;
-import chat.giga.model.v2.completion.*;
+import chat.giga.model.v2.completion.ChatMessageRoleV2;
+import chat.giga.model.v2.completion.ChatMessageV2;
+import chat.giga.model.v2.completion.CompletionRequestV2;
+import chat.giga.model.v2.completion.CompletionResponseV2;
+import chat.giga.model.v2.completion.FunctionCallContentV2;
+import chat.giga.model.v2.completion.FunctionResultContentV2;
+import chat.giga.model.v2.completion.FunctionSpecificationV2;
+import chat.giga.model.v2.completion.FunctionsToolPayloadV2;
+import chat.giga.model.v2.completion.MessageContentPartV2;
+import chat.giga.model.v2.completion.ModelOptionsV2;
+import chat.giga.model.v2.completion.ReasoningV2;
+import chat.giga.model.v2.completion.ToolV2;
 import chat.giga.model.v2.completion.stream.CompletionStreamUsageV2;
+import chat.giga.util.JsonUtils;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import chat.giga.util.JsonUtils;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.data.message.AiMessage;
@@ -15,15 +26,18 @@ import dev.langchain4j.data.message.ToolExecutionResultMessage;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.request.ResponseFormat;
-import dev.langchain4j.model.chat.request.json.*;
+import dev.langchain4j.model.chat.request.json.JsonSchemaElement;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.chat.response.ChatResponseMetadata;
 import dev.langchain4j.model.output.FinishReason;
 import dev.langchain4j.model.output.TokenUsage;
 
-import java.util.*;
-import java.util.stream.Collectors;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 import static dev.langchain4j.internal.JsonSchemaElementUtils.toMap;
 import static dev.langchain4j.model.output.FinishReason.CONTENT_FILTER;
@@ -31,8 +45,29 @@ import static dev.langchain4j.model.output.FinishReason.LENGTH;
 import static dev.langchain4j.model.output.FinishReason.STOP;
 import static dev.langchain4j.model.output.FinishReason.TOOL_EXECUTION;
 
+/**
+ * Вспомогательный класс для конвертации между langchain4j и GigaChat API v2.
+ * <p>
+ * Предоставляет методы для преобразования запросов и ответов между форматами langchain4j и GigaChat API версии 2.
+ * <p>
+ * API v2 предоставляет дополнительные возможности, такие как работа с ассистентами, памятью, reasoning-режимом и
+ * расширенными настройками модели.
+ *
+ * @see chat.giga.model.v2.completion.CompletionRequestV2
+ * @see chat.giga.model.v2.completion.CompletionResponseV2
+ */
 public class GigaChatHelperV2 {
 
+    /**
+     * Преобразует запрос langchain4j в запрос GigaChat API v2.
+     * <p>
+     * Метод учитывает специфичные параметры GigaChat и выполняет валидацию совместимости параметров для API v2.
+     *
+     * @param chatRequest запрос langchain4j
+     * @param parameters  специфичные параметры GigaChat
+     * @return запрос в формате GigaChat API v2
+     * @throws IllegalStateException если {@code useV2Completions} равен {@code false}
+     */
     public static CompletionRequestV2 toRequestV2(ChatRequest chatRequest, GigaChatChatRequestParameters parameters) {
         boolean useV2 = parameters != null && Boolean.TRUE.equals(parameters.getUseV2Completions());
         if (!useV2) {
@@ -103,6 +138,16 @@ public class GigaChatHelperV2 {
         }
     }
 
+    /**
+     * Преобразует ответ GigaChat API v2 в ответ langchain4j.
+     * <p>
+     * Извлекает сообщение ассистента из ответа и преобразует его в формат langchain4j,
+     * включая информацию об использовании токенов и причине завершения.
+     *
+     * @param completions ответ от GigaChat API v2
+     * @return ответ в формате langchain4j
+     * @throws IllegalArgumentException если ответ не содержит сообщений или сообщение ассистента
+     */
     public static ChatResponse toResponseV2(CompletionResponseV2 completions) {
         if (completions.messages() == null || completions.messages().isEmpty()) {
             throw new IllegalArgumentException("Messages is empty in the v2 response");

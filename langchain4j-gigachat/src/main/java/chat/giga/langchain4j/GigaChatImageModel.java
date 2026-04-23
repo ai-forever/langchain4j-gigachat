@@ -23,10 +23,33 @@ import static dev.langchain4j.internal.Utils.getOrDefault;
  */
 public class GigaChatImageModel implements ImageModel {
 
+    /**
+     * Клиент для работы с GigaChat API
+     */
     private final GigaChatClient client;
+
+    /** Максимальное количество повторных попыток при ошибках сети */
     private final Integer maxRetries;
+
+    /** Чат-модель для обработки запросов на генерацию изображений */
     private final GigaChatChatModel chatModel;
 
+    /**
+     * Создает экземпляр GigaChatImageModel с использованием builder pattern.
+     *
+     * @param apiHttpClient HTTP-клиент для API запросов (опционально)
+     * @param authClient клиент аутентификации для получения токенов доступа
+     * @param readTimeout таймаут чтения в миллисекундах (опционально)
+     * @param connectTimeout таймаут подключения в миллисекундах (опционально)
+     * @param apiUrl URL API GigaChat (опционально, по умолчанию используется официальный эндпоинт)
+     * @param logRequests флаг логирования исходящих запросов
+     * @param logResponses флаг логирования входящих ответов
+     * @param verifySslCerts флаг проверки SSL сертификатов
+     * @param maxRetries максимальное количество повторных попыток при ошибках сети (опционально)
+     * @param maxRetriesOnAuthError максимальное количество повторных попыток при ошибках аутентификации (опционально)
+     * @param listeners слушатели событий модели (опционально)
+     * @param defaultChatRequestParameters параметры запроса по умолчанию (опционально)
+     */
     @Builder
     public GigaChatImageModel(HttpClient apiHttpClient,
                               AuthClient authClient,

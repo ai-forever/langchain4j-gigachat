@@ -1,8 +1,8 @@
 package chat.giga.langchain4j;
 
+import chat.giga.client.CompletionV2StreamHandler;
 import chat.giga.client.GigaChatClientAsync;
 import chat.giga.client.ResponseHandler;
-import chat.giga.client.CompletionV2StreamHandler;
 import chat.giga.client.auth.AuthClient;
 import chat.giga.http.client.HttpClient;
 import chat.giga.model.completion.ChoiceFinishReason;
@@ -31,8 +31,8 @@ import static chat.giga.langchain4j.utils.GigaChatHelper.finishReasonFrom;
 import static chat.giga.langchain4j.utils.GigaChatHelper.toRequest;
 import static chat.giga.langchain4j.utils.GigaChatHelper.toTokenUsage;
 import static chat.giga.langchain4j.utils.GigaChatHelper.toToolExecutionRequest;
-import static chat.giga.langchain4j.utils.GigaChatHelperV2.toRequestV2;
 import static chat.giga.langchain4j.utils.GigaChatHelperV2.finishReasonFromV2;
+import static chat.giga.langchain4j.utils.GigaChatHelperV2.toRequestV2;
 import static chat.giga.langchain4j.utils.GigaChatHelperV2.toTokenUsageV2;
 import static dev.langchain4j.internal.Utils.copy;
 import static dev.langchain4j.internal.Utils.firstNotNull;
@@ -45,11 +45,38 @@ import static dev.langchain4j.internal.Utils.getOrDefault;
  */
 public class GigaChatStreamingChatModel implements StreamingChatModel {
 
+    /**
+     * Асинхронный клиент для работы с GigaChat API в потоковом режиме
+     */
     private final GigaChatClientAsync asyncClient;
+
+    /** Слушатели событий модели */
     private final List<ChatModelListener> listeners;
+
+    /** Параметры запроса по умолчанию */
     private final GigaChatChatRequestParameters defaultChatRequestParameters;
+
+    /** Флаг использования API v2 */
     private final Boolean useV2Completions;
 
+    /**
+     * Создает экземпляр GigaChatStreamingChatModel с использованием builder pattern.
+     *
+     * @param apiHttpClient HTTP-клиент для API запросов (опционально)
+     * @param authClient клиент аутентификации для получения токенов доступа
+     * @param readTimeout таймаут чтения в миллисекундах (опционально)
+     * @param connectTimeout таймаут подключения в миллисекундах (опционально)
+     * @param apiUrl URL API GigaChat (опционально, по умолчанию используется официальный эндпоинт)
+     * @param logRequests флаг логирования исходящих запросов
+     * @param logResponses флаг логирования входящих ответов
+     * @param verifySslCerts флаг проверки SSL сертификатов
+     * @param listeners слушатели событий модели
+     * @param responseFormat формат ответа модели (JSON schema или текст) (опционально)
+     * @param strictJsonSchema флаг строгой валидации JSON схемы (опционально)
+     * @param maxRetriesOnAuthError максимальное количество повторных попыток при ошибках аутентификации (опционально)
+     * @param defaultChatRequestParameters параметры запроса по умолчанию (опционально)
+     * @param useV2Completions флаг использования API v2 (по умолчанию false)
+     */
     @Builder
     public GigaChatStreamingChatModel(HttpClient apiHttpClient,
             AuthClient authClient,
