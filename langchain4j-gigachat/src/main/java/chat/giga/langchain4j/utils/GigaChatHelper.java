@@ -12,6 +12,7 @@ import chat.giga.model.completion.CompletionRequest;
 import chat.giga.model.completion.CompletionResponse;
 import chat.giga.model.completion.ResponseFormatType;
 import chat.giga.model.completion.Usage;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -56,6 +57,8 @@ import static dev.langchain4j.model.output.FinishReason.STOP;
 import static dev.langchain4j.model.output.FinishReason.TOOL_EXECUTION;
 
 public class GigaChatHelper {
+
+    private static final int MAX_RECURSION_DEPTH = 50;
 
     public enum ParamType {
         OBJECT,
@@ -269,7 +272,7 @@ public class GigaChatHelper {
                     .content(userMessage.contents().stream()
                             .map(content -> content instanceof TextContent ? ((TextContent) content).text() : null)
                             .toList().get(0))
-                    .attachments(getOrDefault(parameters.getAttachments(), List.of()))
+                    .attachments(parameters != null ? getOrDefault(parameters.getAttachments(), List.of()) : List.of())
                     .build();
         } else if (message instanceof SystemMessage systemMessage) {
             return chat.giga.model.completion.ChatMessage.builder()
@@ -378,73 +381,117 @@ public class GigaChatHelper {
             ChatFunctionParametersProperty.ChatFunctionParametersPropertyBuilder builder =
                     ChatFunctionParametersProperty.builder();
             if (rawMap.containsKey("type")) {
-                builder.type(rawMap.get("type").toString());
+                Object typeObj = rawMap.get("type");
+                if (typeObj != null) {
+                    builder.type(typeObj.toString());
+                }
             }
             if (rawMap.containsKey("description")) {
-                builder.description(rawMap.get("description").toString());
+                Object descObj = rawMap.get("description");
+                if (descObj != null) {
+                    builder.description(descObj.toString());
+                }
             }
             if (rawMap.containsKey("properties")) {
-                @SuppressWarnings("unchecked")
-                Map<String, Map<String, Object>> propsMap =
-                        (Map<String, Map<String, Object>>) rawMap.get("properties");
-                Map<String, ChatFunctionParametersProperty> convertedProps = new LinkedHashMap<>();
-                for (Map.Entry<String, Map<String, Object>> entry : propsMap.entrySet()) {
-                    convertedProps.put(entry.getKey(),
-                            convertRawPropertyMapToProperty(entry.getValue()));
+                Object propertiesObj = rawMap.get("properties");
+                if (propertiesObj instanceof Map) {
+                    @SuppressWarnings("unchecked")
+                    Map<String, Map<String, Object>> propsMap =
+                            (Map<String, Map<String, Object>>) propertiesObj;
+                    Map<String, ChatFunctionParametersProperty> convertedProps = new LinkedHashMap<>();
+                    for (Map.Entry<String, Map<String, Object>> entry : propsMap.entrySet()) {
+                        convertedProps.put(entry.getKey(),
+                                convertRawPropertyMapToProperty(entry.getValue(), 1));
+                    }
+                    builder.properties(convertedProps);
                 }
-                builder.properties(convertedProps);
             }
             if (rawMap.containsKey("anyOf")) {
-                @SuppressWarnings("unchecked")
-                List<Map<String, Object>> anyOfList = (List<Map<String, Object>>) rawMap.get("anyOf");
-                List<ChatFunctionParametersProperty> anyOfProps = anyOfList.stream()
-                        .map(GigaChatHelper::convertRawPropertyMapToProperty)
-                        .collect(Collectors.toList());
-                builder.anyOf(anyOfProps);
+                Object anyOfObj = rawMap.get("anyOf");
+                if (anyOfObj instanceof List) {
+                    @SuppressWarnings("unchecked")
+                    List<Map<String, Object>> anyOfList = (List<Map<String, Object>>) anyOfObj;
+                    List<ChatFunctionParametersProperty> anyOfProps = anyOfList.stream()
+                            .map(map -> convertRawPropertyMapToProperty(map, 1))
+                            .collect(Collectors.toList());
+                    builder.anyOf(anyOfProps);
+                }
             }
             return builder.build();
+        } catch (JsonProcessingException e) {
+            throw new IllegalArgumentException("Failed to parse JSON in JsonRawSchema: " + e.getMessage(), e);
+        } catch (ClassCastException e) {
+            throw new IllegalArgumentException("Invalid type conversion in JsonRawSchema: " + e.getMessage(), e);
         } catch (Exception e) {
             throw new IllegalArgumentException("Failed to parse JsonRawSchema: " + e.getMessage(), e);
         }
     }
 
     private static ChatFunctionParametersProperty convertRawPropertyMapToProperty(Map<String, Object> propMap) {
+        return convertRawPropertyMapToProperty(propMap, 0);
+    }
+
+    private static ChatFunctionParametersProperty convertRawPropertyMapToProperty(Map<String, Object> propMap,
+            int depth) {
+        if (depth > MAX_RECURSION_DEPTH) {
+            throw new IllegalArgumentException(
+                    "Maximum recursion depth (" + MAX_RECURSION_DEPTH + ") exceeded while parsing JSON schema");
+        }
+        
         ChatFunctionParametersProperty.ChatFunctionParametersPropertyBuilder builder =
                 ChatFunctionParametersProperty.builder();
         if (propMap.containsKey("type")) {
-            builder.type(propMap.get("type").toString());
+            Object typeObj = propMap.get("type");
+            if (typeObj != null) {
+                builder.type(typeObj.toString());
+            }
         }
         if (propMap.containsKey("description")) {
-            builder.description(propMap.get("description").toString());
+            Object descObj = propMap.get("description");
+            if (descObj != null) {
+                builder.description(descObj.toString());
+            }
         }
         if (propMap.containsKey("enum")) {
-            @SuppressWarnings("unchecked")
-            List<String> enumValues = (List<String>) propMap.get("enum");
-            builder.enums(enumValues);
+            Object enumObj = propMap.get("enum");
+            if (enumObj instanceof List) {
+                @SuppressWarnings("unchecked")
+                List<String> enumValues = (List<String>) enumObj;
+                builder.enums(enumValues);
+            }
         }
         if (propMap.containsKey("properties")) {
-            @SuppressWarnings("unchecked")
-            Map<String, Map<String, Object>> nestedProps =
-                    (Map<String, Map<String, Object>>) propMap.get("properties");
-            Map<String, ChatFunctionParametersProperty> convertedProps = new LinkedHashMap<>();
-            for (Map.Entry<String, Map<String, Object>> entry : nestedProps.entrySet()) {
-                convertedProps.put(entry.getKey(),
-                        convertRawPropertyMapToProperty(entry.getValue()));
+            Object propertiesObj = propMap.get("properties");
+            if (propertiesObj instanceof Map) {
+                @SuppressWarnings("unchecked")
+                Map<String, Map<String, Object>> nestedProps =
+                        (Map<String, Map<String, Object>>) propertiesObj;
+                Map<String, ChatFunctionParametersProperty> convertedProps = new LinkedHashMap<>();
+                for (Map.Entry<String, Map<String, Object>> entry : nestedProps.entrySet()) {
+                    convertedProps.put(entry.getKey(),
+                            convertRawPropertyMapToProperty(entry.getValue(), depth + 1));
+                }
+                builder.properties(convertedProps);
             }
-            builder.properties(convertedProps);
         }
         if (propMap.containsKey("items")) {
-            @SuppressWarnings("unchecked")
-            Map<String, Object> itemsMap = (Map<String, Object>) propMap.get("items");
-            builder.items(itemsMap);
+            Object itemsObj = propMap.get("items");
+            if (itemsObj instanceof Map) {
+                @SuppressWarnings("unchecked")
+                Map<String, Object> itemsMap = (Map<String, Object>) itemsObj;
+                builder.items(itemsMap);
+            }
         }
         if (propMap.containsKey("anyOf")) {
-            @SuppressWarnings("unchecked")
-            List<Map<String, Object>> anyOfList = (List<Map<String, Object>>) propMap.get("anyOf");
-            List<ChatFunctionParametersProperty> anyOfProps = anyOfList.stream()
-                    .map(GigaChatHelper::convertRawPropertyMapToProperty)
-                    .collect(Collectors.toList());
-            builder.anyOf(anyOfProps);
+            Object anyOfObj = propMap.get("anyOf");
+            if (anyOfObj instanceof List) {
+                @SuppressWarnings("unchecked")
+                List<Map<String, Object>> anyOfList = (List<Map<String, Object>>) anyOfObj;
+                List<ChatFunctionParametersProperty> anyOfProps = anyOfList.stream()
+                        .map(map -> convertRawPropertyMapToProperty(map, depth + 1))
+                        .collect(Collectors.toList());
+                builder.anyOf(anyOfProps);
+            }
         }
         return builder.build();
     }

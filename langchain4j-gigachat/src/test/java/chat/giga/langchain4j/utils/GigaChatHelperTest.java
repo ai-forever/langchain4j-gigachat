@@ -593,4 +593,139 @@ class GigaChatHelperTest {
         assertEquals(chat.giga.model.completion.ResponseFormatType.JSON_SCHEMA, request.responseFormat().type());
         assertNotNull(request.responseFormat().schema());
     }
+
+
+    @Test
+    void testToRequestWithInvalidJsonRawSchema() {
+        String invalidJson = "{invalid json}";
+        JsonObjectSchema objectSchema = JsonObjectSchema.builder()
+                .addStringProperty("id")
+                .addProperty("data", JsonRawSchema.builder().schema(invalidJson).build())
+                .required("id")
+                .build();
+
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () ->
+                GigaChatHelper.toRequest(ChatRequest.builder()
+                        .parameters(GigaChatChatRequestParameters.builder()
+                                .modelName("testModel")
+                                .build())
+                        .messages(UserMessage.from("hello"))
+                        .toolSpecifications(ToolSpecification.builder()
+                                .name("testFunction")
+                                .parameters(objectSchema)
+                                .build())
+                        .build()));
+
+        assertThat(exception.getMessage()).contains("Failed to parse JSON");
+    }
+
+    @Test
+    void testToRequestWithJsonRawSchemaItemsField() {
+        String rawSchemaWithItems = "{\"type\":\"array\",\"items\":{\"type\":\"string\",\"description\":\"A string item\"}}";
+        JsonObjectSchema objectSchema = JsonObjectSchema.builder()
+                .addStringProperty("id")
+                .addProperty("arrayData", JsonRawSchema.builder().schema(rawSchemaWithItems).build())
+                .required("id")
+                .build();
+
+        CompletionRequest request = GigaChatHelper.toRequest(ChatRequest.builder()
+                .parameters(GigaChatChatRequestParameters.builder()
+                        .modelName("testModel")
+                        .build())
+                .messages(UserMessage.from("hello"))
+                .toolSpecifications(ToolSpecification.builder()
+                        .name("testFunction")
+                        .parameters(objectSchema)
+                        .build())
+                .build());
+
+        assertNotNull(request);
+        assertNotNull(request.functions());
+        assertEquals(1, request.functions().size());
+        chat.giga.model.completion.ChatFunction function = request.functions().get(0);
+        assertEquals("testFunction", function.name());
+        assertNotNull(function.parameters().properties().get("arrayData"));
+        assertEquals("array", function.parameters().properties().get("arrayData").type());
+        assertNotNull(function.parameters().properties().get("arrayData").items());
+        assertEquals(1, function.parameters().properties().get("arrayData").items().size());
+        assertNotNull(function.parameters().properties().get("arrayData").items().get("type"));
+        assertEquals("string", function.parameters().properties().get("arrayData").items().get("type"));
+    }
+
+    @Test
+    void testToRequestWithJsonRawSchemaEnumField() {
+        String rawSchemaWithEnum = "{\"type\":\"string\",\"enum\":[\"option1\",\"option2\",\"option3\"]}";
+        JsonObjectSchema objectSchema = JsonObjectSchema.builder()
+                .addStringProperty("id")
+                .addProperty("choice", JsonRawSchema.builder().schema(rawSchemaWithEnum).build())
+                .required("id")
+                .build();
+
+        CompletionRequest request = GigaChatHelper.toRequest(ChatRequest.builder()
+                .parameters(GigaChatChatRequestParameters.builder()
+                        .modelName("testModel")
+                        .build())
+                .messages(UserMessage.from("hello"))
+                .toolSpecifications(ToolSpecification.builder()
+                        .name("testFunction")
+                        .parameters(objectSchema)
+                        .build())
+                .build());
+
+        assertNotNull(request);
+        assertNotNull(request.functions());
+        assertEquals(1, request.functions().size());
+        chat.giga.model.completion.ChatFunction function = request.functions().get(0);
+        assertEquals("testFunction", function.name());
+        assertNotNull(function.parameters().properties().get("choice"));
+        assertEquals("string", function.parameters().properties().get("choice").type());
+        assertNotNull(function.parameters().properties().get("choice").enums());
+        assertEquals(3, function.parameters().properties().get("choice").enums().size());
+        assertThat(function.parameters().properties().get("choice").enums())
+                .containsExactly("option1", "option2", "option3");
+    }
+
+    @Test
+    void testToRequestWithDeeplyNestedJsonRawSchema() {
+        String deepNestedSchema = "{\"type\":\"object\",\"properties\":{\"level1\":{\"type\":\"object\",\"properties\":{\"level2\":{\"type\":\"object\",\"properties\":{\"level3\":{\"type\":\"string\"}}}}}}}";
+        JsonObjectSchema objectSchema = JsonObjectSchema.builder()
+                .addStringProperty("id")
+                .addProperty("nestedData", JsonRawSchema.builder().schema(deepNestedSchema).build())
+                .required("id")
+                .build();
+
+        CompletionRequest request = GigaChatHelper.toRequest(ChatRequest.builder()
+                .parameters(GigaChatChatRequestParameters.builder()
+                        .modelName("testModel")
+                        .build())
+                .messages(UserMessage.from("hello"))
+                .toolSpecifications(ToolSpecification.builder()
+                        .name("testFunction")
+                        .parameters(objectSchema)
+                        .build())
+                .build());
+
+        assertNotNull(request);
+        assertNotNull(request.functions());
+        assertEquals(1, request.functions().size());
+        chat.giga.model.completion.ChatFunction function = request.functions().get(0);
+        assertEquals("testFunction", function.name());
+
+        // Check nested structure
+        var nestedProp = function.parameters().properties().get("nestedData");
+        assertNotNull(nestedProp);
+        assertEquals("object", nestedProp.type());
+
+        var level1 = nestedProp.properties().get("level1");
+        assertNotNull(level1);
+        assertEquals("object", level1.type());
+
+        var level2 = level1.properties().get("level2");
+        assertNotNull(level2);
+        assertEquals("object", level2.type());
+
+        var level3 = level2.properties().get("level3");
+        assertNotNull(level3);
+        assertEquals("string", level3.type());
+    }
 }
