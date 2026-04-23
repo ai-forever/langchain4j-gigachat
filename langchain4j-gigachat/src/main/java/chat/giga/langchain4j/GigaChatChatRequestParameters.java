@@ -19,6 +19,12 @@ public class GigaChatChatRequestParameters extends DefaultChatRequestParameters 
     private final Float repetitionPenalty;
     private final String sessionId;
     private final Boolean strictJsonSchema;
+    private final Boolean useV2Completions;
+    private final Boolean disableFilter;
+    private final String assistantId;
+    private final String memoryId;
+    private final List<String> flags;
+    private final String reasoningEffort;
 
     private GigaChatChatRequestParameters(GigaChatBuilder builder) {
         super(builder);
@@ -30,6 +36,12 @@ public class GigaChatChatRequestParameters extends DefaultChatRequestParameters 
         this.repetitionPenalty = builder.repetitionPenalty;
         this.sessionId = builder.sessionId;
         this.strictJsonSchema = builder.strictJsonSchema;
+        this.useV2Completions = builder.useV2Completions;
+        this.disableFilter = builder.disableFilter;
+        this.assistantId = builder.assistantId;
+        this.memoryId = builder.memoryId;
+        this.flags = builder.flags;
+        this.reasoningEffort = builder.reasoningEffort;
     }
 
     public static class GigaChatBuilder extends Builder<GigaChatBuilder> {
@@ -42,6 +54,12 @@ public class GigaChatChatRequestParameters extends DefaultChatRequestParameters 
         private Float repetitionPenalty;
         private String sessionId;
         private Boolean strictJsonSchema = false;
+        private Boolean useV2Completions = false;
+        private Boolean disableFilter;
+        private String assistantId;
+        private String memoryId;
+        private List<String> flags;
+        private String reasoningEffort;
 
         public GigaChatBuilder updateInterval(Integer updateInterval) {
             this.updateInterval = updateInterval;
@@ -80,6 +98,36 @@ public class GigaChatChatRequestParameters extends DefaultChatRequestParameters 
             return this;
         }
 
+        public GigaChatBuilder useV2Completions(Boolean useV2Completions) {
+            this.useV2Completions = useV2Completions;
+            return this;
+        }
+
+        public GigaChatBuilder disableFilter(Boolean disableFilter) {
+            this.disableFilter = disableFilter;
+            return this;
+        }
+
+        public GigaChatBuilder assistantId(String assistantId) {
+            this.assistantId = assistantId;
+            return this;
+        }
+
+        public GigaChatBuilder memoryId(String memoryId) {
+            this.memoryId = memoryId;
+            return this;
+        }
+
+        public GigaChatBuilder flags(List<String> flags) {
+            this.flags = flags;
+            return this;
+        }
+
+        public GigaChatBuilder reasoningEffort(String reasoningEffort) {
+            this.reasoningEffort = reasoningEffort;
+            return this;
+        }
+
         @Override
         public GigaChatChatRequestParameters build() {
             return new GigaChatChatRequestParameters(this);
@@ -97,6 +145,12 @@ public class GigaChatChatRequestParameters extends DefaultChatRequestParameters 
                 repetitionPenalty(getOrDefault(chatChatRequestParameters.getRepetitionPenalty(), repetitionPenalty));
                 sessionId(getOrDefault(chatChatRequestParameters.getSessionId(), sessionId));
                 strictJsonSchema(getOrDefault(chatChatRequestParameters.getStrictJsonSchema(), strictJsonSchema));
+                useV2Completions(getOrDefault(chatChatRequestParameters.getUseV2Completions(), useV2Completions));
+                disableFilter(getOrDefault(chatChatRequestParameters.getDisableFilter(), disableFilter));
+                assistantId(getOrDefault(chatChatRequestParameters.getAssistantId(), assistantId));
+                memoryId(getOrDefault(chatChatRequestParameters.getMemoryId(), memoryId));
+                flags(getOrDefault(chatChatRequestParameters.getFlags(), flags));
+                reasoningEffort(getOrDefault(chatChatRequestParameters.getReasoningEffort(), reasoningEffort));
             }
             return this;
         }

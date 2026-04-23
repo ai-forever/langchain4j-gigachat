@@ -2,10 +2,15 @@ package chat.giga.langchain4j;
 
 import chat.giga.client.GigaChatClientAsync;
 import chat.giga.client.ResponseHandler;
+import chat.giga.client.CompletionV2StreamHandler;
 import chat.giga.client.auth.AuthClient;
 import chat.giga.http.client.HttpClient;
 import chat.giga.model.completion.ChoiceFinishReason;
 import chat.giga.model.completion.CompletionChunkResponse;
+import chat.giga.model.v2.completion.CompletionRequestV2;
+import chat.giga.model.v2.completion.stream.CompletionMessageDeltaEventV2;
+import chat.giga.model.v2.completion.stream.CompletionMessageDoneEventV2;
+import chat.giga.model.v2.completion.stream.CompletionToolLifecycleEventV2;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.model.chat.StreamingChatModel;
@@ -26,6 +31,9 @@ import static chat.giga.langchain4j.utils.GigaChatHelper.finishReasonFrom;
 import static chat.giga.langchain4j.utils.GigaChatHelper.toRequest;
 import static chat.giga.langchain4j.utils.GigaChatHelper.toTokenUsage;
 import static chat.giga.langchain4j.utils.GigaChatHelper.toToolExecutionRequest;
+import static chat.giga.langchain4j.utils.GigaChatHelperV2.toRequestV2;
+import static chat.giga.langchain4j.utils.GigaChatHelperV2.finishReasonFromV2;
+import static chat.giga.langchain4j.utils.GigaChatHelperV2.toTokenUsageV2;
 import static dev.langchain4j.internal.Utils.copy;
 import static dev.langchain4j.internal.Utils.firstNotNull;
 import static dev.langchain4j.internal.Utils.getOrDefault;
@@ -40,6 +48,7 @@ public class GigaChatStreamingChatModel implements StreamingChatModel {
     private final GigaChatClientAsync asyncClient;
     private final List<ChatModelListener> listeners;
     private final GigaChatChatRequestParameters defaultChatRequestParameters;
+    private final Boolean useV2Completions;
 
     @Builder
     public GigaChatStreamingChatModel(HttpClient apiHttpClient,
@@ -54,7 +63,8 @@ public class GigaChatStreamingChatModel implements StreamingChatModel {
             ResponseFormat responseFormat,
             Boolean strictJsonSchema,
             Integer maxRetriesOnAuthError,
-            GigaChatChatRequestParameters defaultChatRequestParameters) {
+            GigaChatChatRequestParameters defaultChatRequestParameters,
+            Boolean useV2Completions) {
 
         this.asyncClient = GigaChatClientAsync.builder()
                 .apiHttpClient(apiHttpClient)
@@ -68,6 +78,7 @@ public class GigaChatStreamingChatModel implements StreamingChatModel {
                 .maxRetriesOnAuthError(maxRetriesOnAuthError)
                 .build();
         this.listeners = copy(listeners);
+        this.useV2Completions = getOrDefault(useV2Completions, false);
         ChatRequestParameters commonParameters;
         if (defaultChatRequestParameters != null) {
             commonParameters = defaultChatRequestParameters;
@@ -104,12 +115,20 @@ public class GigaChatStreamingChatModel implements StreamingChatModel {
                         firstNotNull("strictJsonSchema", strictJsonSchema, gigaChatParameters.getStrictJsonSchema(),
                                 false))
                 .responseFormat(getOrDefault(responseFormat, commonParameters.responseFormat()))
+                .useV2Completions(
+                        firstNotNull("useV2Completions", useV2Completions, gigaChatParameters.getUseV2Completions(),
+                                false))
                 .build();
     }
 
     @Override
     public void doChat(ChatRequest chatRequest, StreamingChatResponseHandler handler) {
-
+        boolean useV2 = shouldUseV2(chatRequest);
+        if (useV2) {
+            doChatV2(chatRequest, handler);
+            return;
+        }
+        
         var responseMetadataBuilder = ChatResponseMetadata.builder();
         var text = new StringBuffer();
         var toolExecutionRequests = new ArrayList<ToolExecutionRequest>();
@@ -138,6 +157,96 @@ public class GigaChatStreamingChatModel implements StreamingChatModel {
                                 } else {
                                     throw new IllegalArgumentException(
                                             "No text or toolExecutionRequests found in the response");
+                                }
+                            }
+                            var chatResponse = ChatResponse.builder()
+                                    .aiMessage(aiMessage)
+                                    .metadata(responseMetadataBuilder.build())
+                                    .build();
+                            handler.onCompleteResponse(chatResponse);
+                        }
+
+                        @Override
+                        public void onError(Throwable throwable) {
+                            handler.onError(throwable);
+                        }
+                    });
+        } catch (Exception ex) {
+            handler.onError(ex);
+        }
+    }
+
+    private void doChatV2(ChatRequest chatRequest, StreamingChatResponseHandler handler) {
+        var responseMetadataBuilder = ChatResponseMetadata.builder();
+        var text = new StringBuffer();
+        var toolExecutionRequests = new ArrayList<ToolExecutionRequest>();
+
+        try {
+            CompletionRequestV2 requestV2 = toRequestV2(chatRequest, defaultChatRequestParameters);
+            requestV2 = requestV2.toBuilder().stream(true).build();
+
+            asyncClient.completionsV2Stream(requestV2, defaultChatRequestParameters.getSessionId(),
+                    new CompletionV2StreamHandler() {
+                        @Override
+                        public void onMessageDelta(CompletionMessageDeltaEventV2 event) {
+                            if (event.delta() != null && event.delta().content() != null) {
+                                event.delta().content().forEach(part -> {
+                                    if (part.text() != null) {
+                                        text.append(part.text());
+                                        handler.onPartialResponse(part.text());
+                                    }
+                                    if (part.functionCall() != null) {
+                                        // Handle tool calls
+                                        var functionCall = part.functionCall();
+                                        var toolRequest = ToolExecutionRequest.builder()
+                                                .name(functionCall.name())
+                                                .arguments(functionCall.arguments() != null ?
+                                                        functionCall.arguments().toString() : "{}")
+                                                .build();
+                                        toolExecutionRequests.add(toolRequest);
+                                    }
+                                });
+                            }
+                        }
+
+                        @Override
+                        public void onMessageDone(CompletionMessageDoneEventV2 event) {
+                            if (event.model() != null) {
+                                responseMetadataBuilder.modelName(event.model());
+                            }
+                            if (event.finishReason() != null) {
+                                responseMetadataBuilder.finishReason(finishReasonFromV2(event.finishReason()));
+                            }
+                            if (event.usage() != null) {
+                                responseMetadataBuilder.tokenUsage(toTokenUsageV2(event.usage()));
+                            }
+                        }
+
+                        @Override
+                        public void onToolInProgress(CompletionToolLifecycleEventV2 event) {
+                            // Handle tool lifecycle events if needed
+                        }
+
+                        @Override
+                        public void onToolCompleted(CompletionToolLifecycleEventV2 event) {
+                            // Handle tool lifecycle events if needed
+                        }
+
+                        @Override
+                        public void onComplete() {
+                            AiMessage aiMessage;
+                            if (!text.toString().isEmpty()) {
+                                if (!toolExecutionRequests.isEmpty()) {
+                                    aiMessage = AiMessage.from(text.toString(), toolExecutionRequests);
+                                } else {
+                                    aiMessage = AiMessage.from(text.toString());
+                                }
+                            } else {
+                                if (!toolExecutionRequests.isEmpty()) {
+                                    aiMessage = AiMessage.from(toolExecutionRequests);
+                                } else {
+                                    throw new IllegalArgumentException(
+                                            "No text or toolExecutionRequests found in the v2 response");
                                 }
                             }
                             var chatResponse = ChatResponse.builder()
@@ -189,7 +298,15 @@ public class GigaChatStreamingChatModel implements StreamingChatModel {
     }
 
     @Override
-    public DefaultChatRequestParameters defaultRequestParameters() {
+    public GigaChatChatRequestParameters defaultRequestParameters() {
         return defaultChatRequestParameters;
+    }
+
+    private boolean shouldUseV2(ChatRequest chatRequest) {
+        Boolean requestUseV2 = null;
+        if (chatRequest.parameters() instanceof GigaChatChatRequestParameters gigaChatParameters) {
+            requestUseV2 = gigaChatParameters.getUseV2Completions();
+        }
+        return getOrDefault(requestUseV2, useV2Completions);
     }
 }
