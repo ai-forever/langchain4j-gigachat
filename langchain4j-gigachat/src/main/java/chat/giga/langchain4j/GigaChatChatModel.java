@@ -85,6 +85,7 @@ public class GigaChatChatModel implements ChatModel {
                              Integer readTimeout,
                              Integer connectTimeout,
                              String apiUrl,
+            String apiV2Url,
                              boolean logRequests,
                              boolean logResponses,
                              boolean verifySslCerts,
@@ -99,6 +100,7 @@ public class GigaChatChatModel implements ChatModel {
         this.client = GigaChatClient.builder()
                 .apiHttpClient(apiHttpClient)
                 .apiUrl(apiUrl)
+                .apiV2Url(apiV2Url)
                 .authClient(authClient)
                 .connectTimeout(connectTimeout)
                 .readTimeout(readTimeout)

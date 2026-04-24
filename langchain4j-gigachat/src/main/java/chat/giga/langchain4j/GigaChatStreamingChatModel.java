@@ -83,6 +83,7 @@ public class GigaChatStreamingChatModel implements StreamingChatModel {
             Integer readTimeout,
             Integer connectTimeout,
             String apiUrl,
+            String apiV2Url,
             boolean logRequests,
             boolean logResponses,
             boolean verifySslCerts,
@@ -96,6 +97,7 @@ public class GigaChatStreamingChatModel implements StreamingChatModel {
         this.asyncClient = GigaChatClientAsync.builder()
                 .apiHttpClient(apiHttpClient)
                 .apiUrl(apiUrl)
+                .apiV2Url(apiV2Url)
                 .authClient(authClient)
                 .connectTimeout(connectTimeout)
                 .readTimeout(readTimeout)
@@ -216,21 +218,24 @@ public class GigaChatStreamingChatModel implements StreamingChatModel {
                     new CompletionV2StreamHandler() {
                         @Override
                         public void onMessageDelta(CompletionMessageDeltaEventV2 event) {
-                            if (event.delta() != null && event.delta().content() != null) {
-                                event.delta().content().forEach(part -> {
-                                    if (part.text() != null) {
-                                        text.append(part.text());
-                                        handler.onPartialResponse(part.text());
-                                    }
-                                    if (part.functionCall() != null) {
-                                        // Handle tool calls
-                                        var functionCall = part.functionCall();
-                                        var toolRequest = ToolExecutionRequest.builder()
-                                                .name(functionCall.name())
-                                                .arguments(functionCall.arguments() != null ?
-                                                        functionCall.arguments().toString() : "{}")
-                                                .build();
-                                        toolExecutionRequests.add(toolRequest);
+                            if (event.messages() != null) {
+                                event.messages().forEach(message -> {
+                                    if (message.content() != null) {
+                                        message.content().forEach(part -> {
+                                            if (part.text() != null) {
+                                                text.append(part.text());
+                                                handler.onPartialResponse(part.text());
+                                            }
+                                            if (part.functionCall() != null) {
+                                                var functionCall = part.functionCall();
+                                                var toolRequest = ToolExecutionRequest.builder()
+                                                        .name(functionCall.name())
+                                                        .arguments(functionCall.arguments() != null ?
+                                                                functionCall.arguments().toString() : "{}")
+                                                        .build();
+                                                toolExecutionRequests.add(toolRequest);
+                                            }
+                                        });
                                     }
                                 });
                             }
