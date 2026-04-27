@@ -60,7 +60,6 @@ public class AutoConfig {
         return GigaChatStreamingChatModel.builder()
                 .logRequests(chatModelProperties.isLogRequests())
                 .logResponses(chatModelProperties.isLogResponses())
-                .useV2Completions(chatModelProperties.isUseV2Completions())
                 .readTimeout(chatModelProperties.getTimeout())
                 .authClient(getAuthClient(chatModelProperties.getAuth()))
                 .apiUrl(chatModelProperties.getApiUrl())
