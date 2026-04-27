@@ -5,6 +5,7 @@ import chat.giga.model.v2.completion.ChatMessageRoleV2;
 import chat.giga.model.v2.completion.ChatMessageV2;
 import chat.giga.model.v2.completion.CompletionRequestV2;
 import chat.giga.model.v2.completion.CompletionResponseV2;
+import chat.giga.model.v2.completion.FileRefV2;
 import chat.giga.model.v2.completion.FunctionCallContentV2;
 import chat.giga.model.v2.completion.FunctionResultContentV2;
 import chat.giga.model.v2.completion.FunctionSpecificationV2;
@@ -15,6 +16,8 @@ import chat.giga.model.v2.completion.ReasoningV2;
 import chat.giga.model.v2.completion.ToolV2;
 import chat.giga.model.v2.completion.stream.CompletionStreamUsageV2;
 import chat.giga.util.JsonUtils;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
@@ -36,7 +39,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import static dev.langchain4j.internal.JsonSchemaElementUtils.toMap;
@@ -181,7 +184,8 @@ public class GigaChatHelperV2 {
         String text = extractTextFromContent(message.content());
 
         if (hasToolCalls(message.content())) {
-            List<ToolExecutionRequest> toolExecutionRequests = extractToolCallsFromContent(message.content());
+            List<ToolExecutionRequest> toolExecutionRequests = extractToolCallsFromContent(message.content(),
+                    message.toolsStateId());
             return AiMessage.builder()
                     .text(text)
                     .toolExecutionRequests(toolExecutionRequests)
@@ -211,7 +215,8 @@ public class GigaChatHelperV2 {
                 .anyMatch(part -> part.functionCall() != null);
     }
 
-    private static List<ToolExecutionRequest> extractToolCallsFromContent(List<MessageContentPartV2> content) {
+    private static List<ToolExecutionRequest> extractToolCallsFromContent(List<MessageContentPartV2> content,
+            String toolId) {
         if (content == null) {
             return Collections.emptyList();
         }
@@ -220,8 +225,20 @@ public class GigaChatHelperV2 {
                 .filter(part -> part.functionCall() != null)
                 .map(part -> {
                     FunctionCallContentV2 functionCall = part.functionCall();
-                    String arguments = functionCall.arguments() != null ? functionCall.arguments().toString() : "{}";
+                    String arguments;
+                    try {
+                        if (functionCall.arguments() != null) {
+                            // arguments() should return JsonNode, serialize it properly
+                            arguments = JsonUtils.objectMapper().writeValueAsString(functionCall.arguments());
+                        } else {
+                            arguments = "{}";
+                        }
+                    } catch (Exception e) {
+                        // Fallback to toString() if serialization fails
+                        arguments = functionCall.arguments() != null ? functionCall.arguments().toString() : "{}";
+                    }
                     return ToolExecutionRequest.builder()
+                            .id(toolId)
                             .name(functionCall.name())
                             .arguments(arguments)
                             .build();
@@ -241,23 +258,55 @@ public class GigaChatHelperV2 {
             GigaChatChatRequestParameters parameters) {
         if (message instanceof UserMessage userMessage) {
             String text = userMessage.contents().stream()
-                    .map(content -> content instanceof TextContent ? ((TextContent) content).text() : null)
-                    .filter(Objects::nonNull)
+                    .filter(TextContent.class::isInstance)
+                    .map(c -> ((TextContent) c).text())
                     .findFirst()
                     .orElse("");
 
-            return ChatMessageV2.textMessage(ChatMessageRoleV2.USER, text);
+            List<FileRefV2> files = Optional.ofNullable(parameters)
+                    .map(GigaChatChatRequestParameters::getAttachments)
+                    .map(attachments -> attachments.stream()
+                            .map(id -> FileRefV2.builder()
+                                    .id(id)
+                                    .build())
+                            .toList())
+                    .orElse(List.of());
+
+            return ChatMessageV2.builder()
+                    .role(ChatMessageRoleV2.USER)
+                    .contentPart(MessageContentPartV2.builder()
+                            .text(text)
+                            .files(files)
+                            .build())
+                    .build();
         } else if (message instanceof SystemMessage systemMessage) {
             return ChatMessageV2.textMessage(ChatMessageRoleV2.SYSTEM, systemMessage.text());
         } else if (message instanceof AiMessage aiMessage) {
-            String text = aiMessage.text();
-            return ChatMessageV2.textMessage(ChatMessageRoleV2.ASSISTANT, text);
+            var toolRequest = aiMessage.toolExecutionRequests().stream()
+                    .findFirst();
+            List<MessageContentPartV2> content = toolRequest
+                    .map(req -> List.of(MessageContentPartV2.builder()
+                            .functionCall(FunctionCallContentV2.builder()
+                                    .name(req.name())
+                                    .arguments(parseArguments(req.arguments()))
+                                    .build())
+                            .text(aiMessage.text())
+                            .build()))
+                    .orElse(List.of());
+
+            return ChatMessageV2.builder()
+                    .toolsStateId(toolRequest.map(ToolExecutionRequest::id).orElse(null))
+                    .role(ChatMessageRoleV2.ASSISTANT)
+                    .content(content)
+                    .build();
+
         } else if (message instanceof ToolExecutionResultMessage toolExecutionResultMessage) {
             try {
                 ObjectMapper objectMapper = JsonUtils.objectMapper();
                 JsonNode resultNode = objectMapper.valueToTree(toolExecutionResultMessage.text());
                 return ChatMessageV2.builder()
                         .role(ChatMessageRoleV2.TOOL)
+                        .toolsStateId(toolExecutionResultMessage.id())
                         .contentPart(MessageContentPartV2.builder()
                                 .functionResult(FunctionResultContentV2.builder()
                                         .name(toolExecutionResultMessage.toolName())
@@ -270,6 +319,15 @@ public class GigaChatHelperV2 {
             }
         } else {
             throw new IllegalArgumentException("Unsupported message type: " + message.getClass().getName());
+        }
+    }
+
+    private static Map<String, Object> parseArguments(String json) {
+        try {
+            return JsonUtils.objectMapper().readValue(json, new TypeReference<>() {
+            });
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException("Failed to parse tool arguments", e);
         }
     }
 
