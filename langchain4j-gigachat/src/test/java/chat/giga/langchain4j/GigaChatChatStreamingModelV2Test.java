@@ -55,8 +55,7 @@ public class GigaChatChatStreamingModelV2Test {
                 GigaChatChatRequestParameters.builder()
                         .modelName(ModelName.GIGA_CHAT_PRO)
                         .useV2Completions(true)
-                        .build(),
-                true   // useV2Completions
+                        .build()
         );
 
         // Use reflection to inject mocked asyncClient for testing
@@ -70,7 +69,6 @@ public class GigaChatChatStreamingModelV2Test {
                 .authClient(authClient)
                 .apiHttpClient(httpClient)
                 .apiUrl("hostTest")
-                .useV2Completions(true)
                 .defaultChatRequestParameters(GigaChatChatRequestParameters.builder()
                         .modelName(ModelName.GIGA_CHAT_PRO)
                         .useV2Completions(true)
@@ -243,7 +241,6 @@ public class GigaChatChatStreamingModelV2Test {
                 .authClient(authClient)
                 .apiHttpClient(httpClient)
                 .apiUrl("test")
-                .useV2Completions(true)
                 .build();
 
         assertThat(model.defaultRequestParameters()).isNotNull();
