@@ -34,6 +34,7 @@ import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.chat.response.ChatResponseMetadata;
 import dev.langchain4j.model.output.FinishReason;
 import dev.langchain4j.model.output.TokenUsage;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -59,6 +60,7 @@ import static dev.langchain4j.model.output.FinishReason.TOOL_EXECUTION;
  * @see chat.giga.model.v2.completion.CompletionRequestV2
  * @see chat.giga.model.v2.completion.CompletionResponseV2
  */
+@Slf4j
 public class GigaChatHelperV2 {
 
     /**
@@ -85,14 +87,14 @@ public class GigaChatHelperV2 {
                                                                               .floatValue() : null)
                 .topP(chatRequest.parameters().topP() != null ? chatRequest.parameters().topP().floatValue() : null)
                 .maxTokens(chatRequest.parameters().maxOutputTokens())
-                .repetitionPenalty(parameters != null ? parameters.getRepetitionPenalty() : null)
-                .updateInterval(parameters != null && parameters.getUpdateInterval() != null ?
+                .repetitionPenalty(parameters.getRepetitionPenalty())
+                .updateInterval(parameters.getUpdateInterval() != null ?
                         parameters.getUpdateInterval().floatValue() : null)
                 .responseFormat(toResponseFormatV2(chatRequest.responseFormat(),
-                        parameters != null ? parameters.getStrictJsonSchema() : false));
+                        parameters.getStrictJsonSchema()));
 
         // Add reasoning if reasoningEffort is set
-        if (parameters != null && parameters.getReasoningEffort() != null) {
+        if (parameters.getReasoningEffort() != null) {
             ReasoningV2 reasoning = ReasoningV2.builder()
                     .effort(parameters.getReasoningEffort())
                     .build();
@@ -104,15 +106,16 @@ public class GigaChatHelperV2 {
         CompletionRequestV2.CompletionRequestV2Builder builder = CompletionRequestV2.builder()
                 .model(chatRequest.parameters().modelName())
                 .messages(convertChatMessagesV2(chatRequest.messages(), parameters))
-                .disableFilter(toDisableFilter(parameters != null ? parameters.getProfanityCheck() : null))
-                .assistantId(parameters != null ? parameters.getAssistantId() : null)
-                .memoryId(parameters != null ? parameters.getMemoryId() : null)
+                .disableFilter(toDisableFilter(parameters.getProfanityCheck()))
+                .assistantId(parameters.getAssistantId())
+                .memoryId(parameters.getMemoryId())
                 .stream(false)
                 .modelOptions(modelOptions)
+                .toolConfig(parameters.getToolConfig())
                 .tools(convertToolsV2(chatRequest.toolSpecifications()));
 
-        // Add flags only if not null (Lombok builder doesn't accept null for collections)
-        if (parameters != null && parameters.getFlags() != null) {
+        // Add flags only if not null
+        if (parameters.getFlags() != null) {
             builder.flags(parameters.getFlags());
         }
 
@@ -131,13 +134,9 @@ public class GigaChatHelperV2 {
             warnings.add("functionCall parameter may not be fully compatible with v2 API. Use toolConfig instead.");
         }
 
-        if (parameters.getAttachments() != null && !parameters.getAttachments().isEmpty()) {
-            warnings.add("attachments parameter may need conversion to v2 file references.");
-        }
-
         if (!warnings.isEmpty()) {
             // Log warnings but don't fail - some parameters might still work
-            System.err.println("GigaChat v2 API warnings: " + String.join("; ", warnings));
+            log.warn("GigaChat v2 API warnings: {}", String.join("; ", warnings));
         }
     }
 
