@@ -1,5 +1,6 @@
 package chat.giga.langchain4j;
 
+import chat.giga.model.v2.completion.ToolConfigV2;
 import dev.langchain4j.model.chat.request.ChatRequestParameters;
 import dev.langchain4j.model.chat.request.DefaultChatRequestParameters;
 import lombok.Getter;
@@ -40,7 +41,7 @@ public class GigaChatChatRequestParameters extends DefaultChatRequestParameters 
     private final Boolean profanityCheck;
 
     /**
-     * Поле, которое отвечает за то, как GigaChat будет работать с функциями. Может быть строкой или объектом.
+     * Поле, которое отвечает за то, как GigaChat будет работать с функциями (в v1 АПИ). Может быть строкой или объектом.
      * Возможные значения:
      * <ul>
      *   <li>{@code none} — режим работы по умолчанию. Если запрос не содержит function_call или значение поля — none,
@@ -50,6 +51,13 @@ public class GigaChatChatRequestParameters extends DefaultChatRequestParameters 
      * </ul>
      */
     private final Object functionCall;
+
+    /**
+     * Поле, которое отвечает за то, как GigaChat будет работать с функциями (в v2 АПИ). Возможные значения: Режим
+     * вызова: {@code auto}, {@code none} или {@code forced}. В режиме {@code forced} выполняется принудительный вызов
+     * встроенного тула или функции из {@code tools.functions}.
+     */
+    private final ToolConfigV2 toolConfig;
 
     /**
      * Список вложений (файлов), которые будут переданы модели.
@@ -120,6 +128,7 @@ public class GigaChatChatRequestParameters extends DefaultChatRequestParameters 
         this.memoryId = builder.memoryId;
         this.flags = builder.flags;
         this.reasoningEffort = builder.reasoningEffort;
+        this.toolConfig = builder.toolConfig;
     }
 
     /**
@@ -164,11 +173,12 @@ public class GigaChatChatRequestParameters extends DefaultChatRequestParameters 
         private String sessionId;
         private Boolean strictJsonSchema = false;
         private Boolean useV2Completions = false;
-        private Boolean disableFilter;
+        private Boolean disableFilter = false;
         private String assistantId;
         private String memoryId;
         private List<String> flags;
         private String reasoningEffort;
+        private ToolConfigV2 toolConfig;
 
         /**
          * Устанавливает минимальный интервал в секундах между отправкой токенов в потоковом режиме.
@@ -349,6 +359,17 @@ public class GigaChatChatRequestParameters extends DefaultChatRequestParameters 
         }
 
         /**
+         * Поле, которое отвечает за то, как GigaChat будет работать с функциями (в v2 АПИ).
+         *
+         * @param toolConfig
+         * @return текущий builder
+         */
+        public GigaChatBuilder toolConfig(ToolConfigV2 toolConfig) {
+            this.toolConfig = toolConfig;
+            return this;
+        }
+
+        /**
          * Создает экземпляр {@link GigaChatChatRequestParameters} с текущими настройками builder.
          *
          * @return новый экземпляр параметров запроса
@@ -384,6 +405,7 @@ public class GigaChatChatRequestParameters extends DefaultChatRequestParameters 
                 memoryId(getOrDefault(chatChatRequestParameters.getMemoryId(), memoryId));
                 flags(getOrDefault(chatChatRequestParameters.getFlags(), flags));
                 reasoningEffort(getOrDefault(chatChatRequestParameters.getReasoningEffort(), reasoningEffort));
+                toolConfig(getOrDefault(chatChatRequestParameters.getToolConfig(), toolConfig));
             }
             return this;
         }
