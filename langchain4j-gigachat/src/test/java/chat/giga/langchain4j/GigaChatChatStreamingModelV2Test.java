@@ -1,7 +1,7 @@
 package chat.giga.langchain4j;
 
-import chat.giga.client.GigaChatClientAsync;
 import chat.giga.client.CompletionV2StreamHandler;
+import chat.giga.client.GigaChatClientAsync;
 import chat.giga.client.auth.AuthClient;
 import chat.giga.http.client.HttpClient;
 import chat.giga.model.ModelName;
@@ -44,6 +44,7 @@ public class GigaChatChatStreamingModelV2Test {
                 10000, // readTimeout
                 5000,  // connectTimeout
                 "https://api.gigachat.ai",
+                null,  // apiV2Url
                 false, // logRequests
                 false, // logResponses
                 true,  // verifySslCerts
@@ -247,9 +248,5 @@ public class GigaChatChatStreamingModelV2Test {
 
         assertThat(model.defaultRequestParameters()).isNotNull();
         assertThat(model.defaultRequestParameters()).isInstanceOf(GigaChatChatRequestParameters.class);
-
-        GigaChatChatRequestParameters params = (GigaChatChatRequestParameters) model.defaultRequestParameters();
-        // Note: useV2Completions might be null (not set) in the default parameters
-        // depending on builder logic
     }
 }
