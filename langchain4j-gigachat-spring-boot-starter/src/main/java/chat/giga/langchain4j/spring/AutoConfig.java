@@ -34,9 +34,11 @@ public class AutoConfig {
                 .readTimeout(chatModelProperties.getTimeout())
                 .authClient(getAuthClient(chatModelProperties.getAuth()))
                 .apiUrl(chatModelProperties.getApiUrl())
+                .apiV2Url(chatModelProperties.getApiV2Url())
                 .verifySslCerts(chatModelProperties.isVerifySslCerts())
                 .listeners(listeners.orderedStream().toList())
                 .defaultChatRequestParameters(GigaChatChatRequestParameters.builder()
+                        .useV2Completions(chatModelProperties.isUseV2Completions())
                         .modelName(chatModelProperties.getModelName())
                         .profanityCheck(chatModelProperties.isProfanityCheck())
                         .temperature(chatModelProperties.getTemperature())
@@ -45,6 +47,7 @@ public class AutoConfig {
                         .presencePenalty(chatModelProperties.getPresencePenalty())
                         .maxOutputTokens(chatModelProperties.getMaxTokens())
                         .stopSequences(chatModelProperties.getStop())
+                        .reasoningEffort(chatModelProperties.getReasoningEffort())
                         .build())
                 .build();
     }
@@ -57,12 +60,15 @@ public class AutoConfig {
         return GigaChatStreamingChatModel.builder()
                 .logRequests(chatModelProperties.isLogRequests())
                 .logResponses(chatModelProperties.isLogResponses())
+                .useV2Completions(chatModelProperties.isUseV2Completions())
                 .readTimeout(chatModelProperties.getTimeout())
                 .authClient(getAuthClient(chatModelProperties.getAuth()))
                 .apiUrl(chatModelProperties.getApiUrl())
+                .apiV2Url(chatModelProperties.getApiV2Url())
                 .verifySslCerts(chatModelProperties.isVerifySslCerts())
                 .listeners(listeners.orderedStream().toList())
                 .defaultChatRequestParameters(GigaChatChatRequestParameters.builder()
+                        .useV2Completions(chatModelProperties.isUseV2Completions())
                         .modelName(chatModelProperties.getModelName())
                         .profanityCheck(chatModelProperties.isProfanityCheck())
                         .temperature(chatModelProperties.getTemperature())
@@ -71,6 +77,7 @@ public class AutoConfig {
                         .presencePenalty(chatModelProperties.getPresencePenalty())
                         .maxOutputTokens(chatModelProperties.getMaxTokens())
                         .stopSequences(chatModelProperties.getStop())
+                        .reasoningEffort(chatModelProperties.getReasoningEffort())
                         .build())
                 .build();
     }

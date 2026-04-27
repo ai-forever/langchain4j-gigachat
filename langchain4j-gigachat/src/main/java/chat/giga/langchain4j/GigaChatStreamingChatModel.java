@@ -56,9 +56,6 @@ public class GigaChatStreamingChatModel implements StreamingChatModel {
     /** Параметры запроса по умолчанию */
     private final GigaChatChatRequestParameters defaultChatRequestParameters;
 
-    /** Флаг использования API v2 */
-    private final Boolean useV2Completions;
-
     /**
      * Создает экземпляр GigaChatStreamingChatModel с использованием builder pattern.
      *
@@ -75,7 +72,6 @@ public class GigaChatStreamingChatModel implements StreamingChatModel {
      * @param strictJsonSchema флаг строгой валидации JSON схемы (опционально)
      * @param maxRetriesOnAuthError максимальное количество повторных попыток при ошибках аутентификации (опционально)
      * @param defaultChatRequestParameters параметры запроса по умолчанию (опционально)
-     * @param useV2Completions флаг использования API v2 (по умолчанию false)
      */
     @Builder
     public GigaChatStreamingChatModel(HttpClient apiHttpClient,
@@ -91,8 +87,7 @@ public class GigaChatStreamingChatModel implements StreamingChatModel {
             ResponseFormat responseFormat,
             Boolean strictJsonSchema,
             Integer maxRetriesOnAuthError,
-            GigaChatChatRequestParameters defaultChatRequestParameters,
-            Boolean useV2Completions) {
+            GigaChatChatRequestParameters defaultChatRequestParameters) {
 
         this.asyncClient = GigaChatClientAsync.builder()
                 .apiHttpClient(apiHttpClient)
@@ -107,7 +102,6 @@ public class GigaChatStreamingChatModel implements StreamingChatModel {
                 .maxRetriesOnAuthError(maxRetriesOnAuthError)
                 .build();
         this.listeners = copy(listeners);
-        this.useV2Completions = getOrDefault(useV2Completions, false);
         ChatRequestParameters commonParameters;
         if (defaultChatRequestParameters != null) {
             commonParameters = defaultChatRequestParameters;
@@ -144,9 +138,7 @@ public class GigaChatStreamingChatModel implements StreamingChatModel {
                         firstNotNull("strictJsonSchema", strictJsonSchema, gigaChatParameters.getStrictJsonSchema(),
                                 false))
                 .responseFormat(getOrDefault(responseFormat, commonParameters.responseFormat()))
-                .useV2Completions(
-                        firstNotNull("useV2Completions", useV2Completions, gigaChatParameters.getUseV2Completions(),
-                                false))
+                .useV2Completions(getOrDefault(gigaChatParameters.getUseV2Completions(), false))
                 .build();
     }
 
@@ -339,6 +331,6 @@ public class GigaChatStreamingChatModel implements StreamingChatModel {
         if (chatRequest.parameters() instanceof GigaChatChatRequestParameters gigaChatParameters) {
             requestUseV2 = gigaChatParameters.getUseV2Completions();
         }
-        return getOrDefault(requestUseV2, useV2Completions);
+        return getOrDefault(requestUseV2, false);
     }
 }

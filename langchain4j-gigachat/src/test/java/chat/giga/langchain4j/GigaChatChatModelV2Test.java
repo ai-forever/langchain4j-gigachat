@@ -4,7 +4,8 @@ import chat.giga.client.GigaChatClient;
 import chat.giga.client.auth.AuthClient;
 import chat.giga.http.client.HttpClient;
 import chat.giga.model.ModelName;
-import chat.giga.model.v2.completion.*;
+import chat.giga.model.v2.completion.ChatMessageRoleV2;
+import chat.giga.model.v2.completion.CompletionResponseV2;
 import chat.giga.model.v2.completion.stream.CompletionStreamUsageV2;
 import chat.giga.util.JsonUtils;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -43,7 +44,6 @@ public class GigaChatChatModelV2Test {
                 .authClient(authClient)
                 .apiHttpClient(httpClient)
                 .apiUrl("hostTest")
-                .useV2Completions(true)
                 .defaultChatRequestParameters(GigaChatChatRequestParameters.builder()
                         .temperature(1.0)
                         .modelName(ModelName.GIGA_CHAT_PRO)
@@ -142,7 +142,6 @@ public class GigaChatChatModelV2Test {
                 .authClient(authClient)
                 .apiHttpClient(httpClient)
                 .apiUrl("hostTest")
-                .useV2Completions(true)
                 .defaultChatRequestParameters(GigaChatChatRequestParameters.builder()
                         .modelName(ModelName.GIGA_CHAT_PRO)
                         .useV2Completions(true)

@@ -56,9 +56,6 @@ public class GigaChatChatModel implements ChatModel {
     /** Параметры запроса по умолчанию */
     private final GigaChatChatRequestParameters defaultChatRequestParameters;
 
-    /** Флаг использования API v2 */
-    private final Boolean useV2Completions;
-
     /**
      * Создает экземпляр GigaChatChatModel с использованием builder pattern.
      *
@@ -77,7 +74,6 @@ public class GigaChatChatModel implements ChatModel {
      * @param strictJsonSchema флаг строгой валидации JSON схемы
      * @param supportedCapabilities поддерживаемые возможности модели
      * @param defaultChatRequestParameters параметры запроса по умолчанию
-     * @param useV2Completions флаг использования API v2
      */
     @Builder
     public GigaChatChatModel(HttpClient apiHttpClient,
@@ -95,8 +91,7 @@ public class GigaChatChatModel implements ChatModel {
             ResponseFormat responseFormat,
             Boolean strictJsonSchema,
             Set<Capability> supportedCapabilities,
-            GigaChatChatRequestParameters defaultChatRequestParameters,
-            Boolean useV2Completions) {
+            GigaChatChatRequestParameters defaultChatRequestParameters) {
         this.client = GigaChatClient.builder()
                 .apiHttpClient(apiHttpClient)
                 .apiUrl(apiUrl)
@@ -112,7 +107,6 @@ public class GigaChatChatModel implements ChatModel {
         this.maxRetries = getOrDefault(maxRetries, 1);
         this.listeners = copy(listeners);
         this.supportedCapabilities = copy(supportedCapabilities);
-        this.useV2Completions = getOrDefault(useV2Completions, false);
         ChatRequestParameters commonParameters;
         if (defaultChatRequestParameters != null) {
             commonParameters = defaultChatRequestParameters;
@@ -150,9 +144,7 @@ public class GigaChatChatModel implements ChatModel {
                         firstNotNull("strictJsonSchema", strictJsonSchema, gigaChatParameters.getStrictJsonSchema(),
                                 false))
                 .responseFormat(getOrDefault(responseFormat, commonParameters.responseFormat()))
-                .useV2Completions(
-                        firstNotNull("useV2Completions", useV2Completions, gigaChatParameters.getUseV2Completions(),
-                                false))
+                .useV2Completions(getOrDefault(gigaChatParameters.getUseV2Completions(), false))
                 .build();
     }
 
@@ -177,7 +169,7 @@ public class GigaChatChatModel implements ChatModel {
         if (chatRequest.parameters() instanceof GigaChatChatRequestParameters gigaChatParameters) {
             requestUseV2 = gigaChatParameters.getUseV2Completions();
         }
-        return getOrDefault(requestUseV2, useV2Completions);
+        return getOrDefault(requestUseV2, false);
     }
 
     @Override

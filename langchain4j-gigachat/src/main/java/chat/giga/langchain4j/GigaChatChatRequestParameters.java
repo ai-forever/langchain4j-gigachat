@@ -107,8 +107,7 @@ public class GigaChatChatRequestParameters extends DefaultChatRequestParameters 
     private final List<String> flags;
 
     /**
-     * Степень «усилия» reasoning: {@code low}, {@code medium} или {@code high} (на момент документации доступен в
-     * основном {@code medium}).
+     * Степень «усилия» reasoning: {@code low}, {@code medium} или {@code high}
      */
     private final String reasoningEffort;
 
