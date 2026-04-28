@@ -401,6 +401,7 @@ public class GigaChatHelper {
                         .build();
             }
             return ChatFunctionParametersProperty.builder()
+                    .type(ParamType.OBJECT.toString()) // giga chat api need type
                     .description(jsonAnyOfSchema.description())
                     .anyOf(anyOfList.stream()
                             .map(GigaChatHelper::convertToChatFunctionParametersProperty)
@@ -562,6 +563,7 @@ public class GigaChatHelper {
                         .map(item -> convertRawPropertyMapToProperty(toStringObjectMap((Map<?, ?>) item), depth + 1))
                         .collect(Collectors.toList());
                 builder.anyOf(anyOfProps);
+                builder.type(ParamType.OBJECT.toString()); // giga chat api need type
             }
         }
         return builder.build();
