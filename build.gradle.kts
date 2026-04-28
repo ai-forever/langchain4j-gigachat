@@ -13,7 +13,6 @@ allprojects {
     version = "0.1.18"
 
     repositories {
-        mavenLocal()
         mavenCentral()
     }
 }
