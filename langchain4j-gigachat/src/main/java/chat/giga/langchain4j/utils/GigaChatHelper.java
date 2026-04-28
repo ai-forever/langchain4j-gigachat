@@ -435,7 +435,6 @@ public class GigaChatHelper {
         }
     }
 
-    @SuppressWarnings("unchecked")
     private static Map<String, Object> extractDefinitions(Map<String, Object> rawMap) {
         Object defsObj = rawMap.get("$defs");
         if (defsObj instanceof Map<?, ?> defsMap) {
@@ -450,7 +449,6 @@ public class GigaChatHelper {
         return Map.of();
     }
 
-    @SuppressWarnings("unchecked")
     private static Map<String, Object> resolveRefs(Map<String, Object> rawMap, Map<String, Object> definitions) {
         return resolveRefs(rawMap, definitions, 0, Set.of());
     }
@@ -502,10 +500,6 @@ public class GigaChatHelper {
                     .collect(Collectors.toList());
         }
         return value;
-    }
-
-    private static ChatFunctionParametersProperty convertRawPropertyMapToProperty(Map<String, Object> propMap) {
-        return convertRawPropertyMapToProperty(propMap, 0);
     }
 
     private static ChatFunctionParametersProperty convertRawPropertyMapToProperty(Map<String, Object> propMap,
