@@ -13,6 +13,7 @@ import dev.langchain4j.data.message.ToolExecutionResultMessage;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.request.ResponseFormat;
+import dev.langchain4j.model.chat.request.json.JsonAnyOfSchema;
 import dev.langchain4j.model.chat.request.json.JsonArraySchema;
 import dev.langchain4j.model.chat.request.json.JsonBooleanSchema;
 import dev.langchain4j.model.chat.request.json.JsonEnumSchema;
@@ -20,10 +21,9 @@ import dev.langchain4j.model.chat.request.json.JsonIntegerSchema;
 import dev.langchain4j.model.chat.request.json.JsonNumberSchema;
 import dev.langchain4j.model.chat.request.json.JsonObjectSchema;
 import dev.langchain4j.model.chat.request.json.JsonRawSchema;
+import dev.langchain4j.model.chat.request.json.JsonReferenceSchema;
 import dev.langchain4j.model.chat.request.json.JsonSchema;
 import dev.langchain4j.model.chat.request.json.JsonStringSchema;
-import dev.langchain4j.model.chat.request.json.JsonAnyOfSchema;
-import dev.langchain4j.model.chat.request.json.JsonReferenceSchema;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.output.FinishReason;
 import dev.langchain4j.model.output.TokenUsage;
@@ -816,6 +816,28 @@ class GigaChatHelperTest {
     }
 
     @Test
+    void testToRequestWithJsonReferenceSchemaAlreadyPrefixed() {
+        JsonObjectSchema objectSchema = JsonObjectSchema.builder()
+                .addProperty("ref", JsonReferenceSchema.builder()
+                        .reference("#/$defs/AlreadyAbsolute")
+                        .build())
+                .build();
+
+        CompletionRequest request = GigaChatHelper.toRequest(ChatRequest.builder()
+                .messages(UserMessage.from("hello"))
+                .toolSpecifications(ToolSpecification.builder()
+                        .name("testFunction")
+                        .parameters(objectSchema)
+                        .build())
+                .build());
+
+        assertNotNull(request);
+        var refProp = request.functions().get(0).parameters().properties().get("ref");
+        assertNotNull(refProp);
+        assertEquals("#/$defs/AlreadyAbsolute", refProp.reference());
+    }
+
+    @Test
     void testToRequestWithJsonRawSchemaWithRefsAndDefs() {
         String rawSchema = """
                 {
@@ -907,6 +929,40 @@ class GigaChatHelperTest {
         assertEquals("string", errorRef.properties().get("reason").type());
         assertNotNull(errorRef.properties().get("suggestion"));
         assertEquals("string", errorRef.properties().get("suggestion").type());
+    }
+
+    @Test
+    void testToRequestWithJsonRawSchemaCyclicRefs() {
+        String cyclicRawSchema = """
+                {
+                    "type": "object",
+                    "properties": {
+                        "node": { "$ref": "#/$defs/Node" }
+                    },
+                    "$defs": {
+                        "Node": {
+                            "type": "object",
+                            "properties": {
+                                "next": { "$ref": "#/$defs/Node" }
+                            }
+                        }
+                    }
+                }
+                """;
+        JsonObjectSchema objectSchema = JsonObjectSchema.builder()
+                .addProperty("data", JsonRawSchema.builder().schema(cyclicRawSchema).build())
+                .build();
+
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () ->
+                GigaChatHelper.toRequest(ChatRequest.builder()
+                        .messages(UserMessage.from("hello"))
+                        .toolSpecifications(ToolSpecification.builder()
+                                .name("testFunction")
+                                .parameters(objectSchema)
+                                .build())
+                        .build()));
+
+        assertThat(exception.getMessage()).contains("Cyclic $ref detected");
     }
 
     @Test

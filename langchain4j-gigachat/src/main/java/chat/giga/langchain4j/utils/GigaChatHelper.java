@@ -25,6 +25,7 @@ import dev.langchain4j.data.message.ToolExecutionResultMessage;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.request.ResponseFormat;
+import dev.langchain4j.model.chat.request.json.JsonAnyOfSchema;
 import dev.langchain4j.model.chat.request.json.JsonArraySchema;
 import dev.langchain4j.model.chat.request.json.JsonBooleanSchema;
 import dev.langchain4j.model.chat.request.json.JsonEnumSchema;
@@ -32,20 +33,21 @@ import dev.langchain4j.model.chat.request.json.JsonIntegerSchema;
 import dev.langchain4j.model.chat.request.json.JsonNumberSchema;
 import dev.langchain4j.model.chat.request.json.JsonObjectSchema;
 import dev.langchain4j.model.chat.request.json.JsonRawSchema;
+import dev.langchain4j.model.chat.request.json.JsonReferenceSchema;
 import dev.langchain4j.model.chat.request.json.JsonSchema;
 import dev.langchain4j.model.chat.request.json.JsonSchemaElement;
 import dev.langchain4j.model.chat.request.json.JsonStringSchema;
-import dev.langchain4j.model.chat.request.json.JsonAnyOfSchema;
-import dev.langchain4j.model.chat.request.json.JsonReferenceSchema;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.chat.response.ChatResponseMetadata;
 import dev.langchain4j.model.output.FinishReason;
 import dev.langchain4j.model.output.TokenUsage;
 
 import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.LinkedHashMap;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import static dev.langchain4j.internal.JsonSchemaElementUtils.toMap;
@@ -315,6 +317,11 @@ public class GigaChatHelper {
             JsonSchemaElement schemaElement) {
         if (schemaElement instanceof JsonReferenceSchema jsonReferenceSchema) {
             String reference = jsonReferenceSchema.reference();
+            if (reference != null && reference.startsWith("#/")) {
+                return ChatFunctionParametersProperty.builder()
+                        .reference(reference)
+                        .build();
+            }
             return ChatFunctionParametersProperty.builder()
                     .reference(reference != null ? "#/$defs/" + reference : null)
                     .build();
@@ -425,6 +432,15 @@ public class GigaChatHelper {
 
     @SuppressWarnings("unchecked")
     private static Map<String, Object> resolveRefs(Map<String, Object> rawMap, Map<String, Object> definitions) {
+        return resolveRefs(rawMap, definitions, 0, Set.of());
+    }
+
+    private static Map<String, Object> resolveRefs(Map<String, Object> rawMap, Map<String, Object> definitions,
+            int depth, Set<String> visitingDefinitions) {
+        if (depth > MAX_RECURSION_DEPTH) {
+            throw new IllegalArgumentException(
+                    "Maximum recursion depth (" + MAX_RECURSION_DEPTH + ") exceeded while resolving $ref");
+        }
         Map<String, Object> resolved = new LinkedHashMap<>();
         for (Map.Entry<String, Object> entry : rawMap.entrySet()) {
             String key = entry.getKey();
@@ -432,27 +448,37 @@ public class GigaChatHelper {
             if ("$defs".equals(key)) {
                 continue;
             }
-            resolved.put(key, resolveRefsInValue(value, definitions));
+            resolved.put(key, resolveRefsInValue(value, definitions, depth + 1, visitingDefinitions));
         }
         return resolved;
     }
 
     @SuppressWarnings("unchecked")
-    private static Object resolveRefsInValue(Object value, Map<String, Object> definitions) {
+    private static Object resolveRefsInValue(Object value, Map<String, Object> definitions,
+            int depth, Set<String> visitingDefinitions) {
+        if (depth > MAX_RECURSION_DEPTH) {
+            throw new IllegalArgumentException(
+                    "Maximum recursion depth (" + MAX_RECURSION_DEPTH + ") exceeded while resolving $ref");
+        }
         if (value instanceof Map<?, ?> map) {
             Map<String, Object> typedMap = toStringObjectMap(map);
             Object ref = typedMap.get("$ref");
             if (ref instanceof String refStr && refStr.startsWith("#/$defs/")) {
                 String defKey = refStr.substring("#/$defs/".length());
                 if (definitions.containsKey(defKey)) {
+                    if (visitingDefinitions.contains(defKey)) {
+                        throw new IllegalArgumentException("Cyclic $ref detected for definition: " + defKey);
+                    }
+                    Set<String> nextVisitingDefinitions = new LinkedHashSet<>(visitingDefinitions);
+                    nextVisitingDefinitions.add(defKey);
                     Map<String, Object> defCopy = new LinkedHashMap<>((Map<String, Object>) definitions.get(defKey));
-                    return resolveRefsInValue(defCopy, definitions);
+                    return resolveRefsInValue(defCopy, definitions, depth + 1, nextVisitingDefinitions);
                 }
             }
-            return resolveRefs(typedMap, definitions);
+            return resolveRefs(typedMap, definitions, depth + 1, visitingDefinitions);
         } else if (value instanceof List<?> list) {
             return list.stream()
-                    .map(item -> resolveRefsInValue(item, definitions))
+                    .map(item -> resolveRefsInValue(item, definitions, depth + 1, visitingDefinitions))
                     .collect(Collectors.toList());
         }
         return value;
