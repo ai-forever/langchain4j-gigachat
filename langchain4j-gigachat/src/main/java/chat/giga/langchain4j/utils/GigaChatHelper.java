@@ -287,13 +287,23 @@ public class GigaChatHelper {
                     .content(systemMessage.text())
                     .build();
         } else if (message instanceof AiMessage aiMessage) {
-            var id = aiMessage.toolExecutionRequests() != null && !aiMessage.toolExecutionRequests().isEmpty() ?
-                    aiMessage.toolExecutionRequests().get(0).id() : null;
-            return chat.giga.model.completion.ChatMessage.builder()
+            var toolRequests = aiMessage.toolExecutionRequests();
+            var firstRequest = (toolRequests != null && !toolRequests.isEmpty())
+                    ? toolRequests.get(0)
+                    : null;
+
+            var builder = ChatMessage.builder()
                     .role(ChatMessageRole.ASSISTANT)
-                    .functionsStateId(id)
-                    .content(aiMessage.text())
-                    .build();
+                    .content(aiMessage.text());
+
+            if (firstRequest != null) {
+                builder.functionsStateId(firstRequest.id())
+                        .functionCall(ChoiceMessageFunctionCall.builder()
+                                .name(firstRequest.name())
+                                .arguments(getArguments(firstRequest.arguments()))
+                                .build());
+            }
+            return builder.build();
         } else if (message instanceof ToolExecutionResultMessage toolExecutionResultMessage) {
             return chat.giga.model.completion.ChatMessage.builder()
                     .role(ChatMessageRole.FUNCTION)
@@ -301,6 +311,16 @@ public class GigaChatHelper {
                     .build();
         } else {
             throw new IllegalArgumentException("Unsupported message type: " + message.getClass().getName());
+        }
+    }
+
+    private static Map<String, Object> getArguments(String arguments) {
+        try {
+            return JsonUtils.objectMapper()
+                    .readValue(arguments, new TypeReference<>() {
+                    });
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
         }
     }
 
