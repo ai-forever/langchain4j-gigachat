@@ -134,6 +134,7 @@ public class GigaChatHelper {
                 .functionCall(parameters != null ? parameters.getFunctionCall() : null)
                 .responseFormat(toResponseFormat(chatRequest.responseFormat(),
                         parameters != null ? parameters.getStrictJsonSchema() : false))
+                .reasoningEffort(parameters != null ? parameters.getReasoningEffort() : null)
                 .functions(chatRequest.toolSpecifications() != null ? (
                                 chatRequest.toolSpecifications()
                                 .stream()

@@ -19,6 +19,7 @@ public class GigaChatChatRequestParameters extends DefaultChatRequestParameters 
     private final Float repetitionPenalty;
     private final String sessionId;
     private final Boolean strictJsonSchema;
+    private final String reasoningEffort;
 
     private GigaChatChatRequestParameters(GigaChatBuilder builder) {
         super(builder);
@@ -30,6 +31,7 @@ public class GigaChatChatRequestParameters extends DefaultChatRequestParameters 
         this.repetitionPenalty = builder.repetitionPenalty;
         this.sessionId = builder.sessionId;
         this.strictJsonSchema = builder.strictJsonSchema;
+        this.reasoningEffort = builder.reasoningEffort;
     }
 
     public static class GigaChatBuilder extends Builder<GigaChatBuilder> {
@@ -42,6 +44,7 @@ public class GigaChatChatRequestParameters extends DefaultChatRequestParameters 
         private Float repetitionPenalty;
         private String sessionId;
         private Boolean strictJsonSchema = false;
+        private String reasoningEffort;
 
         public GigaChatBuilder updateInterval(Integer updateInterval) {
             this.updateInterval = updateInterval;
@@ -80,6 +83,11 @@ public class GigaChatChatRequestParameters extends DefaultChatRequestParameters 
             return this;
         }
 
+        public GigaChatBuilder reasoningEffort(String reasoningEffort) {
+            this.reasoningEffort = reasoningEffort;
+            return this;
+        }
+
         @Override
         public GigaChatChatRequestParameters build() {
             return new GigaChatChatRequestParameters(this);
@@ -97,6 +105,7 @@ public class GigaChatChatRequestParameters extends DefaultChatRequestParameters 
                 repetitionPenalty(getOrDefault(chatChatRequestParameters.getRepetitionPenalty(), repetitionPenalty));
                 sessionId(getOrDefault(chatChatRequestParameters.getSessionId(), sessionId));
                 strictJsonSchema(getOrDefault(chatChatRequestParameters.getStrictJsonSchema(), strictJsonSchema));
+                reasoningEffort(getOrDefault(chatChatRequestParameters.getReasoningEffort(), reasoningEffort));
             }
             return this;
         }
