@@ -151,7 +151,11 @@ public class TestData {
         return ChatRequest.builder()
                 .messages(AiMessage.builder()
                         .text("test message")
-                        .toolExecutionRequests(Collections.singletonList(ToolExecutionRequest.builder().build()))
+                        .toolExecutionRequests(Collections.singletonList(
+                                ToolExecutionRequest.builder()
+                                        .id("testTool")
+                                        .arguments("{\"key\":\"value\"}")
+                                        .build()))
                         .build())
                 .parameters(GigaChatChatRequestParameters.builder()
                         .modelName("testModel")

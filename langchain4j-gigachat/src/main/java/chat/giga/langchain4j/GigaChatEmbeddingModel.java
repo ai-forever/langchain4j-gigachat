@@ -37,7 +37,8 @@ public class GigaChatEmbeddingModel extends DimensionAwareEmbeddingModel {
                                   boolean logRequests,
                                   boolean logResponses,
                                   boolean verifySslCerts,
-                                  String modelName, Integer batchSize) {
+            String modelName, Integer batchSize,
+            Integer maxRetriesOnAuthError) {
         this.gigaChatClient = GigaChatClient.builder()
                 .apiHttpClient(apiHttpClient)
                 .apiUrl(apiUrl)
@@ -47,6 +48,7 @@ public class GigaChatEmbeddingModel extends DimensionAwareEmbeddingModel {
                 .logRequests(logRequests)
                 .logResponses(logResponses)
                 .verifySslCerts(verifySslCerts)
+                .maxRetriesOnAuthError(maxRetriesOnAuthError)
                 .build();
         this.modelName = getOrDefault(modelName, ModelName.EMBEDDINGS);
         this.batchSize = getOrDefault(batchSize, 16);

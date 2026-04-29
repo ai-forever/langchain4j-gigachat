@@ -70,7 +70,7 @@ public class GigaChatChatStreamingModelTest {
             listener.onComplete();
 
             return null;
-        }).when(httpClient).execute(any(), any());
+        }).when(httpClient).execute(any(), any(SseListener.class));
 
         model.chat(
                 ChatRequest.builder()

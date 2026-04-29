@@ -10,7 +10,7 @@ java {
 
 allprojects {
     group = "chat.giga"
-    version = "0.1.17"
+    version = "0.1.18"
 
     repositories {
         mavenCentral()
@@ -19,7 +19,7 @@ allprojects {
 
 
 dependencies {
-    testImplementation(platform("org.junit:junit-bom:5.10.0"))
+    testImplementation(platform("org.junit:junit-bom:5.11.4"))
     testImplementation("org.junit.jupiter:junit-jupiter")
 }
 

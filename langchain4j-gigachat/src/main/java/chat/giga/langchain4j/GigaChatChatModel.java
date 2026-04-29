@@ -51,6 +51,7 @@ public class GigaChatChatModel implements ChatModel {
                              boolean logResponses,
                              boolean verifySslCerts,
                              Integer maxRetries,
+            Integer maxRetriesOnAuthError,
                              List<ChatModelListener> listeners,
             ResponseFormat responseFormat,
             Boolean strictJsonSchema,
@@ -65,6 +66,7 @@ public class GigaChatChatModel implements ChatModel {
                 .logRequests(logRequests)
                 .logResponses(logResponses)
                 .verifySslCerts(verifySslCerts)
+                .maxRetriesOnAuthError(maxRetriesOnAuthError)
                 .build();
         this.maxRetries = getOrDefault(maxRetries, 1);
         this.listeners = copy(listeners);

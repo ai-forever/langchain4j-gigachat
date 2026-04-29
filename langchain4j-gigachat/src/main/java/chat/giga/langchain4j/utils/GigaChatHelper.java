@@ -12,8 +12,10 @@ import chat.giga.model.completion.CompletionRequest;
 import chat.giga.model.completion.CompletionResponse;
 import chat.giga.model.completion.ResponseFormatType;
 import chat.giga.model.completion.Usage;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.data.message.AiMessage;
@@ -23,6 +25,7 @@ import dev.langchain4j.data.message.ToolExecutionResultMessage;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.request.ResponseFormat;
+import dev.langchain4j.model.chat.request.json.JsonAnyOfSchema;
 import dev.langchain4j.model.chat.request.json.JsonArraySchema;
 import dev.langchain4j.model.chat.request.json.JsonBooleanSchema;
 import dev.langchain4j.model.chat.request.json.JsonEnumSchema;
@@ -30,6 +33,7 @@ import dev.langchain4j.model.chat.request.json.JsonIntegerSchema;
 import dev.langchain4j.model.chat.request.json.JsonNumberSchema;
 import dev.langchain4j.model.chat.request.json.JsonObjectSchema;
 import dev.langchain4j.model.chat.request.json.JsonRawSchema;
+import dev.langchain4j.model.chat.request.json.JsonReferenceSchema;
 import dev.langchain4j.model.chat.request.json.JsonSchema;
 import dev.langchain4j.model.chat.request.json.JsonSchemaElement;
 import dev.langchain4j.model.chat.request.json.JsonStringSchema;
@@ -39,8 +43,11 @@ import dev.langchain4j.model.output.FinishReason;
 import dev.langchain4j.model.output.TokenUsage;
 
 import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import static dev.langchain4j.internal.JsonSchemaElementUtils.toMap;
@@ -53,6 +60,8 @@ import static dev.langchain4j.model.output.FinishReason.STOP;
 import static dev.langchain4j.model.output.FinishReason.TOOL_EXECUTION;
 
 public class GigaChatHelper {
+
+    private static final int MAX_RECURSION_DEPTH = 50;
 
     public enum ParamType {
         OBJECT,
@@ -82,12 +91,13 @@ public class GigaChatHelper {
                                 .build();
                     }
                     var aiMessage = toolExecutionRequest != null ? AiMessage.builder()
-                            .text(s.message().content())
-                            .toolExecutionRequests(Collections.singletonList(toolExecutionRequest))
-                            .build()
+                                                                   .text(s.message().content())
+                                                                   .toolExecutionRequests(Collections.singletonList(
+                                                                           toolExecutionRequest))
+                                                                   .build()
                             : AiMessage.builder()
-                                    .text(s.message().content())
-                                    .build();
+                              .text(s.message().content())
+                              .build();
                     return ChatResponse.builder()
                             .aiMessage(aiMessage)
                             .metadata(ChatResponseMetadata.builder()
@@ -114,7 +124,7 @@ public class GigaChatHelper {
                 .model(chatRequest.parameters().modelName())
                 .messages(convertChatMessages(chatRequest.messages(), parameters))
                 .temperature(chatRequest.parameters().temperature() != null ? chatRequest.parameters().temperature()
-                        .floatValue() : null)
+                                                                              .floatValue() : null)
                 .topP(chatRequest.parameters().topP() != null ? chatRequest.parameters().topP().floatValue() : null)
                 .maxTokens(chatRequest.parameters().maxOutputTokens())
                 .repetitionPenalty(parameters != null ? parameters.getRepetitionPenalty() : null)
@@ -124,38 +134,43 @@ public class GigaChatHelper {
                 .functionCall(parameters != null ? parameters.getFunctionCall() : null)
                 .responseFormat(toResponseFormat(chatRequest.responseFormat(),
                         parameters != null ? parameters.getStrictJsonSchema() : false))
+                .reasoningEffort(parameters != null ? parameters.getReasoningEffort() : null)
                 .functions(chatRequest.toolSpecifications() != null ? (
                                 chatRequest.toolSpecifications()
-                                        .stream()
-                                        .map(toolSpecification -> {
-                                            ChatFunctionParameters chatFunctionParameters;
-                                            if (toolSpecification.parameters() == null) {
-                                                chatFunctionParameters = ChatFunctionParameters.builder()
-                                                        .type(ParamType.OBJECT.toString())
-                                                        .properties(Map.of())
-                                                        .build();
-                                            } else {
-                                                chatFunctionParameters = ChatFunctionParameters.builder()
-                                                        .required(toolSpecification.parameters().required())
-                                                        .properties(convertParameters(
-                                                                toolSpecification.parameters().properties()))
-                                                        .build();
-                                            }
-                                            return ChatFunction.builder()
-                                                    .name(toolSpecification.name())
-                                                    .description(toolSpecification.description())
-                                                    .parameters(chatFunctionParameters)
-                                                    .fewShotExamples(getMetadataValue(
-                                                            toolSpecification, "few_shot_examples",
-                                                            new TypeReference<>() {
-                                                            }, List.of()))
-                                                    .returnParameters(
-                                                            getMetadataValue(toolSpecification, "return_parameters",
-                                                                    new TypeReference<>() {
-                                                                    }, null))
-                                                    .build();
-                                        })
-                                        .collect(Collectors.toList())
+                                .stream()
+                                .map(toolSpecification -> {
+                                    ChatFunctionParameters chatFunctionParameters;
+                                    if (toolSpecification.parameters() == null) {
+                                        chatFunctionParameters = ChatFunctionParameters.builder()
+                                                                 .type(ParamType.OBJECT.toString())
+                                                                 .properties(Map.of())
+                                                                 .build();
+                                    } else {
+                                        JsonObjectSchema rootObject = toolSpecification.parameters();
+                                        ChatFunctionParameters.ChatFunctionParametersBuilder paramsBuilder =
+                                                ChatFunctionParameters.builder()
+                                                        .required(rootObject.required())
+                                                        .properties(convertParameters(rootObject.properties()));
+                                        if (rootObject.definitions() != null && !rootObject.definitions().isEmpty()) {
+                                            paramsBuilder.definitions(convertParameters(rootObject.definitions()));
+                                        }
+                                        chatFunctionParameters = paramsBuilder.build();
+                                    }
+                                    return ChatFunction.builder()
+                                           .name(toolSpecification.name())
+                                           .description(toolSpecification.description())
+                                           .parameters(chatFunctionParameters)
+                                           .fewShotExamples(getMetadataValue(
+                                                   toolSpecification, "few_shot_examples",
+                                                   new TypeReference<>() {
+                                                   }, List.of()))
+                                           .returnParameters(
+                                                   getMetadataValue(toolSpecification, "return_parameters",
+                                                           new TypeReference<>() {
+                                                           }, null))
+                                           .build();
+                                })
+                                .collect(Collectors.toList())
                         ) : List.of()
                 )
                 .build();
@@ -180,9 +195,10 @@ public class GigaChatHelper {
             JsonSchema jsonSchema = responseFormat.jsonSchema();
             if (jsonSchema != null) {
                 if (!(jsonSchema.rootElement() instanceof JsonObjectSchema
-                        || jsonSchema.rootElement() instanceof JsonRawSchema)) {
+                        || jsonSchema.rootElement() instanceof JsonRawSchema
+                        || jsonSchema.rootElement() instanceof JsonAnyOfSchema)) {
                     throw new IllegalArgumentException(
-                            "For GigaChat, the root element of the JSON Schema must be either a JsonObjectSchema or a JsonRawSchema, but it was: "
+                            "For GigaChat, the root element of the JSON Schema must be either a JsonObjectSchema, a JsonRawSchema, or a JsonAnyOfSchema, but it was: "
                                     + (jsonSchema.rootElement() != null ? jsonSchema.rootElement().getClass()
                                     : "null"));
                 }
@@ -264,7 +280,7 @@ public class GigaChatHelper {
                     .content(userMessage.contents().stream()
                             .map(content -> content instanceof TextContent ? ((TextContent) content).text() : null)
                             .toList().get(0))
-                    .attachments(getOrDefault(parameters.getAttachments(), List.of()))
+                    .attachments(parameters != null ? getOrDefault(parameters.getAttachments(), List.of()) : List.of())
                     .build();
         } else if (message instanceof SystemMessage systemMessage) {
             return chat.giga.model.completion.ChatMessage.builder()
@@ -272,13 +288,23 @@ public class GigaChatHelper {
                     .content(systemMessage.text())
                     .build();
         } else if (message instanceof AiMessage aiMessage) {
-            var id = aiMessage.toolExecutionRequests() != null && !aiMessage.toolExecutionRequests().isEmpty() ?
-                    aiMessage.toolExecutionRequests().get(0).id() : null;
-            return chat.giga.model.completion.ChatMessage.builder()
+            var toolRequests = aiMessage.toolExecutionRequests();
+            var firstRequest = (toolRequests != null && !toolRequests.isEmpty())
+                    ? toolRequests.get(0)
+                    : null;
+
+            var builder = ChatMessage.builder()
                     .role(ChatMessageRole.ASSISTANT)
-                    .functionsStateId(id)
-                    .content(aiMessage.text())
-                    .build();
+                    .content(aiMessage.text());
+
+            if (firstRequest != null) {
+                builder.functionsStateId(firstRequest.id())
+                        .functionCall(ChoiceMessageFunctionCall.builder()
+                                .name(firstRequest.name())
+                                .arguments(getArguments(firstRequest.arguments()))
+                                .build());
+            }
+            return builder.build();
         } else if (message instanceof ToolExecutionResultMessage toolExecutionResultMessage) {
             return chat.giga.model.completion.ChatMessage.builder()
                     .role(ChatMessageRole.FUNCTION)
@@ -286,6 +312,16 @@ public class GigaChatHelper {
                     .build();
         } else {
             throw new IllegalArgumentException("Unsupported message type: " + message.getClass().getName());
+        }
+    }
+
+    private static Map<String, Object> getArguments(String arguments) {
+        try {
+            return JsonUtils.objectMapper()
+                    .readValue(arguments, new TypeReference<>() {
+                    });
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
         }
     }
 
@@ -300,7 +336,17 @@ public class GigaChatHelper {
 
     private static ChatFunctionParametersProperty convertToChatFunctionParametersProperty(
             JsonSchemaElement schemaElement) {
-        if (schemaElement instanceof JsonObjectSchema jsonObjectSchema) {
+        if (schemaElement instanceof JsonReferenceSchema jsonReferenceSchema) {
+            String reference = jsonReferenceSchema.reference();
+            if (reference != null && reference.startsWith("#/")) {
+                return ChatFunctionParametersProperty.builder()
+                        .reference(reference)
+                        .build();
+            }
+            return ChatFunctionParametersProperty.builder()
+                    .reference(reference != null ? "#/$defs/" + reference : null)
+                    .build();
+        } else if (schemaElement instanceof JsonObjectSchema jsonObjectSchema) {
             return ChatFunctionParametersProperty.builder()
                     .type(ParamType.OBJECT.toString())
                     .properties(convertParameters(jsonObjectSchema.properties()))
@@ -348,11 +394,189 @@ public class GigaChatHelper {
                     .description(jsonArraySchema.description())
                     .items(itemsMap)
                     .build();
+        } else if (schemaElement instanceof JsonAnyOfSchema jsonAnyOfSchema) {
+            List<JsonSchemaElement> anyOfList = jsonAnyOfSchema.anyOf();
+            if (anyOfList == null) {
+                return ChatFunctionParametersProperty.builder()
+                        .description(jsonAnyOfSchema.description())
+                        .build();
+            }
+            return ChatFunctionParametersProperty.builder()
+                    .type(ParamType.OBJECT.toString()) // giga chat api need type
+                    .description(jsonAnyOfSchema.description())
+                    .anyOf(anyOfList.stream()
+                            .map(GigaChatHelper::convertToChatFunctionParametersProperty)
+                            .collect(Collectors.toList()))
+                    .build();
+        } else if (schemaElement instanceof JsonRawSchema jsonRawSchema) {
+            return convertRawSchemaToProperty(jsonRawSchema);
         }
         return ChatFunctionParametersProperty.builder().build();
     }
 
     private static String toArgumentsString(ChoiceMessageFunctionCall function) {
         return JsonUtils.objectMapper().convertValue(function.arguments(), JsonNode.class).toString();
+    }
+
+    private static ChatFunctionParametersProperty convertRawSchemaToProperty(JsonRawSchema jsonRawSchema) {
+        try {
+            ObjectMapper mapper = JsonUtils.objectMapper();
+            Map<String, Object> rawMap = mapper.readValue(jsonRawSchema.schema(), new TypeReference<>() {
+            });
+            Map<String, Object> definitions = extractDefinitions(rawMap);
+            if (!definitions.isEmpty()) {
+                rawMap = resolveRefs(rawMap, definitions);
+            }
+            return convertRawPropertyMapToProperty(rawMap, 0);
+        } catch (JsonProcessingException e) {
+            throw new IllegalArgumentException("Failed to parse JSON in JsonRawSchema: " + e.getMessage(), e);
+        } catch (ClassCastException e) {
+            throw new IllegalArgumentException("Invalid type conversion in JsonRawSchema: " + e.getMessage(), e);
+        } catch (Exception e) {
+            throw new IllegalArgumentException("Failed to parse JsonRawSchema: " + e.getMessage(), e);
+        }
+    }
+
+    private static Map<String, Object> extractDefinitions(Map<String, Object> rawMap) {
+        Object defsObj = rawMap.get("$defs");
+        if (defsObj instanceof Map<?, ?> defsMap) {
+            Map<String, Object> result = new LinkedHashMap<>();
+            for (Map.Entry<?, ?> entry : defsMap.entrySet()) {
+                if (entry.getKey() instanceof String key && entry.getValue() instanceof Map<?, ?> value) {
+                    result.put(key, toStringObjectMap(value));
+                }
+            }
+            return result;
+        }
+        return Map.of();
+    }
+
+    private static Map<String, Object> resolveRefs(Map<String, Object> rawMap, Map<String, Object> definitions) {
+        return resolveRefs(rawMap, definitions, 0, Set.of());
+    }
+
+    private static Map<String, Object> resolveRefs(Map<String, Object> rawMap, Map<String, Object> definitions,
+            int depth, Set<String> visitingDefinitions) {
+        if (depth > MAX_RECURSION_DEPTH) {
+            throw new IllegalArgumentException(
+                    "Maximum recursion depth (" + MAX_RECURSION_DEPTH + ") exceeded while resolving $ref");
+        }
+        Map<String, Object> resolved = new LinkedHashMap<>();
+        for (Map.Entry<String, Object> entry : rawMap.entrySet()) {
+            String key = entry.getKey();
+            Object value = entry.getValue();
+            if ("$defs".equals(key)) {
+                continue;
+            }
+            resolved.put(key, resolveRefsInValue(value, definitions, depth + 1, visitingDefinitions));
+        }
+        return resolved;
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Object resolveRefsInValue(Object value, Map<String, Object> definitions,
+            int depth, Set<String> visitingDefinitions) {
+        if (depth > MAX_RECURSION_DEPTH) {
+            throw new IllegalArgumentException(
+                    "Maximum recursion depth (" + MAX_RECURSION_DEPTH + ") exceeded while resolving $ref");
+        }
+        if (value instanceof Map<?, ?> map) {
+            Map<String, Object> typedMap = toStringObjectMap(map);
+            Object ref = typedMap.get("$ref");
+            if (ref instanceof String refStr && refStr.startsWith("#/$defs/")) {
+                String defKey = refStr.substring("#/$defs/".length());
+                if (definitions.containsKey(defKey)) {
+                    if (visitingDefinitions.contains(defKey)) {
+                        throw new IllegalArgumentException("Cyclic $ref detected for definition: " + defKey);
+                    }
+                    Set<String> nextVisitingDefinitions = new LinkedHashSet<>(visitingDefinitions);
+                    nextVisitingDefinitions.add(defKey);
+                    Map<String, Object> defCopy = new LinkedHashMap<>((Map<String, Object>) definitions.get(defKey));
+                    return resolveRefsInValue(defCopy, definitions, depth + 1, nextVisitingDefinitions);
+                }
+            }
+            return resolveRefs(typedMap, definitions, depth + 1, visitingDefinitions);
+        } else if (value instanceof List<?> list) {
+            return list.stream()
+                    .map(item -> resolveRefsInValue(item, definitions, depth + 1, visitingDefinitions))
+                    .collect(Collectors.toList());
+        }
+        return value;
+    }
+
+    private static ChatFunctionParametersProperty convertRawPropertyMapToProperty(Map<String, Object> propMap,
+            int depth) {
+        if (depth > MAX_RECURSION_DEPTH) {
+            throw new IllegalArgumentException(
+                    "Maximum recursion depth (" + MAX_RECURSION_DEPTH + ") exceeded while parsing JSON schema");
+        }
+        
+        ChatFunctionParametersProperty.ChatFunctionParametersPropertyBuilder builder =
+                ChatFunctionParametersProperty.builder();
+        if (propMap.containsKey("type")) {
+            Object typeObj = propMap.get("type");
+            if (typeObj != null) {
+                builder.type(typeObj.toString());
+            }
+        }
+        if (propMap.containsKey("description")) {
+            Object descObj = propMap.get("description");
+            if (descObj != null) {
+                builder.description(descObj.toString());
+            }
+        }
+        if (propMap.containsKey("enum")) {
+            Object enumObj = propMap.get("enum");
+            if (enumObj instanceof List<?> rawEnumList) {
+                List<String> enumValues = rawEnumList.stream()
+                        .filter(item -> item instanceof String)
+                        .map(String.class::cast)
+                        .collect(Collectors.toList());
+                builder.enums(enumValues);
+            }
+        }
+        if (propMap.containsKey("properties")) {
+            Object propertiesObj = propMap.get("properties");
+            if (propertiesObj instanceof Map<?, ?> rawPropsMap) {
+                Map<String, ChatFunctionParametersProperty> convertedProps = new LinkedHashMap<>();
+                for (Map.Entry<?, ?> entry : rawPropsMap.entrySet()) {
+                    if (entry.getKey() instanceof String key && entry.getValue() instanceof Map<?, ?> valueMap) {
+                        Map<String, Object> typedValueMap = toStringObjectMap(valueMap);
+                        convertedProps.put(key,
+                                convertRawPropertyMapToProperty(typedValueMap, depth + 1));
+                    }
+                }
+                builder.properties(convertedProps);
+            }
+        }
+        if (propMap.containsKey("items")) {
+            Object itemsObj = propMap.get("items");
+            if (itemsObj instanceof Map<?, ?> rawItemsMap) {
+                Map<String, Object> itemsMap = toStringObjectMap(rawItemsMap);
+                builder.items(itemsMap);
+            }
+        }
+        if (propMap.containsKey("anyOf")) {
+            Object anyOfObj = propMap.get("anyOf");
+            if (anyOfObj instanceof List<?> rawAnyOfList) {
+                List<ChatFunctionParametersProperty> anyOfProps = rawAnyOfList.stream()
+                        .filter(item -> item instanceof Map<?, ?>)
+                        .map(item -> convertRawPropertyMapToProperty(toStringObjectMap((Map<?, ?>) item), depth + 1))
+                        .collect(Collectors.toList());
+                builder.anyOf(anyOfProps);
+                builder.type(ParamType.OBJECT.toString()); // giga chat api need type
+            }
+        }
+        return builder.build();
+    }
+
+    private static Map<String, Object> toStringObjectMap(Map<?, ?> rawMap) {
+        Map<String, Object> result = new LinkedHashMap<>();
+        for (Map.Entry<?, ?> entry : rawMap.entrySet()) {
+            if (entry.getKey() instanceof String key) {
+                result.put(key, entry.getValue());
+            }
+        }
+        return result;
     }
 }
