@@ -89,7 +89,7 @@ public class GigaChatHelperV2 {
                 .maxTokens(chatRequest.parameters().maxOutputTokens())
                 .repetitionPenalty(parameters.getRepetitionPenalty())
                 .updateInterval(parameters.getUpdateInterval() != null ?
-                        parameters.getUpdateInterval().floatValue() : null)
+                        parameters.getUpdateInterval() : null)
                 .responseFormat(toResponseFormatV2(chatRequest.responseFormat(),
                         parameters.getStrictJsonSchema()));
 
@@ -322,6 +322,9 @@ public class GigaChatHelperV2 {
     }
 
     private static Map<String, Object> parseArguments(String json) {
+        if (json == null || json.isEmpty()) {
+            return Map.of();
+        }
         try {
             return JsonUtils.objectMapper().readValue(json, new TypeReference<>() {
             });

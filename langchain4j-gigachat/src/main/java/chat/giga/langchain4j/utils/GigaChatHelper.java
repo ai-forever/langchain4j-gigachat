@@ -316,6 +316,9 @@ public class GigaChatHelper {
     }
 
     private static Map<String, Object> getArguments(String arguments) {
+        if (arguments == null || arguments.isEmpty()) {
+            return Map.of();
+        }
         try {
             return JsonUtils.objectMapper()
                     .readValue(arguments, new TypeReference<>() {
