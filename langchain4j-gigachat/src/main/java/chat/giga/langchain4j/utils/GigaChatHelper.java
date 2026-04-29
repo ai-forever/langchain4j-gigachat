@@ -134,6 +134,7 @@ public class GigaChatHelper {
                 .functionCall(parameters != null ? parameters.getFunctionCall() : null)
                 .responseFormat(toResponseFormat(chatRequest.responseFormat(),
                         parameters != null ? parameters.getStrictJsonSchema() : false))
+                .reasoningEffort(parameters != null ? parameters.getReasoningEffort() : null)
                 .functions(chatRequest.toolSpecifications() != null ? (
                                 chatRequest.toolSpecifications()
                                 .stream()
@@ -401,6 +402,7 @@ public class GigaChatHelper {
                         .build();
             }
             return ChatFunctionParametersProperty.builder()
+                    .type(ParamType.OBJECT.toString()) // giga chat api need type
                     .description(jsonAnyOfSchema.description())
                     .anyOf(anyOfList.stream()
                             .map(GigaChatHelper::convertToChatFunctionParametersProperty)
@@ -435,7 +437,6 @@ public class GigaChatHelper {
         }
     }
 
-    @SuppressWarnings("unchecked")
     private static Map<String, Object> extractDefinitions(Map<String, Object> rawMap) {
         Object defsObj = rawMap.get("$defs");
         if (defsObj instanceof Map<?, ?> defsMap) {
@@ -450,7 +451,6 @@ public class GigaChatHelper {
         return Map.of();
     }
 
-    @SuppressWarnings("unchecked")
     private static Map<String, Object> resolveRefs(Map<String, Object> rawMap, Map<String, Object> definitions) {
         return resolveRefs(rawMap, definitions, 0, Set.of());
     }
@@ -502,10 +502,6 @@ public class GigaChatHelper {
                     .collect(Collectors.toList());
         }
         return value;
-    }
-
-    private static ChatFunctionParametersProperty convertRawPropertyMapToProperty(Map<String, Object> propMap) {
-        return convertRawPropertyMapToProperty(propMap, 0);
     }
 
     private static ChatFunctionParametersProperty convertRawPropertyMapToProperty(Map<String, Object> propMap,
@@ -568,6 +564,7 @@ public class GigaChatHelper {
                         .map(item -> convertRawPropertyMapToProperty(toStringObjectMap((Map<?, ?>) item), depth + 1))
                         .collect(Collectors.toList());
                 builder.anyOf(anyOfProps);
+                builder.type(ParamType.OBJECT.toString()); // giga chat api need type
             }
         }
         return builder.build();
