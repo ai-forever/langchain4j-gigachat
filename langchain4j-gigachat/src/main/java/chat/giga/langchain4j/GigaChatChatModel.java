@@ -152,7 +152,7 @@ public class GigaChatChatModel implements ChatModel {
     public ChatResponse doChat(ChatRequest chatRequest) {
         boolean useV2 = shouldUseV2(chatRequest);
         if (useV2) {
-            CompletionRequestV2 requestV2 = toRequestV2(chatRequest, defaultChatRequestParameters);
+            CompletionRequestV2 requestV2 = toRequestV2(chatRequest);
             CompletionResponseV2 responseV2 = withRetry(() ->
                             client.completionsV2(requestV2, defaultChatRequestParameters.getSessionId()),
                     maxRetries);

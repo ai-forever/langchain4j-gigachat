@@ -69,11 +69,15 @@ public class GigaChatHelperV2 {
      * Метод учитывает специфичные параметры GigaChat и выполняет валидацию совместимости параметров для API v2.
      *
      * @param chatRequest запрос langchain4j
-     * @param parameters  специфичные параметры GigaChat
      * @return запрос в формате GigaChat API v2
      * @throws IllegalStateException если {@code useV2Completions} равен {@code false}
      */
-    public static CompletionRequestV2 toRequestV2(ChatRequest chatRequest, GigaChatChatRequestParameters parameters) {
+    public static CompletionRequestV2 toRequestV2(ChatRequest chatRequest) {
+        GigaChatChatRequestParameters parameters = null;
+        if (chatRequest.parameters() instanceof GigaChatChatRequestParameters gigaChatParameters) {
+            parameters = gigaChatParameters;
+        }
+
         boolean useV2 = parameters != null && Boolean.TRUE.equals(parameters.getUseV2Completions());
         if (!useV2) {
             throw new IllegalStateException("Cannot convert to v2 request when useV2Completions is false");
@@ -88,8 +92,7 @@ public class GigaChatHelperV2 {
                 .topP(chatRequest.parameters().topP() != null ? chatRequest.parameters().topP().floatValue() : null)
                 .maxTokens(chatRequest.parameters().maxOutputTokens())
                 .repetitionPenalty(parameters.getRepetitionPenalty())
-                .updateInterval(parameters.getUpdateInterval() != null ?
-                        parameters.getUpdateInterval() : null)
+                .updateInterval(parameters.getUpdateInterval())
                 .responseFormat(toResponseFormatV2(chatRequest.responseFormat(),
                         parameters.getStrictJsonSchema()));
 
@@ -106,10 +109,10 @@ public class GigaChatHelperV2 {
         CompletionRequestV2.CompletionRequestV2Builder builder = CompletionRequestV2.builder()
                 .model(chatRequest.parameters().modelName())
                 .messages(convertChatMessagesV2(chatRequest.messages(), parameters))
-                .disableFilter(toDisableFilter(parameters.getProfanityCheck()))
+                .disableFilter(resolveDisableFilter(parameters))
                 .assistantId(parameters.getAssistantId())
                 .memoryId(parameters.getMemoryId())
-                .stream(false)
+                .stream(parameters.getStream())
                 .modelOptions(modelOptions)
                 .toolConfig(parameters.getToolConfig())
                 .tools(convertToolsV2(chatRequest.toolSpecifications()));
@@ -175,7 +178,7 @@ public class GigaChatHelperV2 {
     private static ChatMessageV2 findAssistantMessage(List<ChatMessageV2> messages) {
         return messages.stream()
                 .filter(msg -> msg.role() == ChatMessageRoleV2.ASSISTANT)
-                .findFirst()
+                .reduce((first, second) -> second)
                 .orElse(null);
     }
 
@@ -415,6 +418,13 @@ public class GigaChatHelperV2 {
     public static chat.giga.model.completion.ResponseFormat toResponseFormatV2(ResponseFormat responseFormat,
             Boolean strict) {
         return chat.giga.langchain4j.utils.GigaChatHelper.toResponseFormat(responseFormat, strict);
+    }
+
+    private static Boolean resolveDisableFilter(GigaChatChatRequestParameters parameters) {
+        if (parameters.getDisableFilter() != null) {
+            return parameters.getDisableFilter();
+        }
+        return toDisableFilter(parameters.getProfanityCheck());
     }
 
     public static Boolean toDisableFilter(Boolean profanityCheck) {

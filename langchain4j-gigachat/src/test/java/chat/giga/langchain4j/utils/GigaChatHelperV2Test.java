@@ -2,11 +2,13 @@ package chat.giga.langchain4j.utils;
 
 import chat.giga.langchain4j.GigaChatChatRequestParameters;
 import chat.giga.model.ModelName;
-import chat.giga.model.v2.completion.*;
+import chat.giga.model.v2.completion.ChatMessageRoleV2;
+import chat.giga.model.v2.completion.ChatMessageV2;
+import chat.giga.model.v2.completion.CompletionRequestV2;
+import chat.giga.model.v2.completion.CompletionResponseV2;
 import chat.giga.model.v2.completion.stream.CompletionStreamUsageV2;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.chat.request.ChatRequest;
-import dev.langchain4j.model.chat.request.DefaultChatRequestParameters;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.output.FinishReason;
 import dev.langchain4j.model.output.TokenUsage;
@@ -88,16 +90,13 @@ public class GigaChatHelperV2Test {
     void shouldThrowWhenUseV2IsFalse() {
         ChatRequest chatRequest = ChatRequest.builder()
                 .messages(List.of(UserMessage.from("test")))
-                .parameters(DefaultChatRequestParameters.builder()
+                .parameters(GigaChatChatRequestParameters.builder()
                         .modelName(ModelName.GIGA_CHAT_PRO)
+                        .useV2Completions(false)
                         .build())
                 .build();
 
-        GigaChatChatRequestParameters parameters = GigaChatChatRequestParameters.builder()
-                .useV2Completions(false)
-                .build();
-
-        assertThatThrownBy(() -> GigaChatHelperV2.toRequestV2(chatRequest, parameters))
+        assertThatThrownBy(() -> GigaChatHelperV2.toRequestV2(chatRequest))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("Cannot convert to v2 request when useV2Completions is false");
     }
@@ -106,19 +105,16 @@ public class GigaChatHelperV2Test {
     void shouldConvertSimpleRequestToV2() {
         ChatRequest chatRequest = ChatRequest.builder()
                 .messages(List.of(UserMessage.from("Hello")))
-                .parameters(DefaultChatRequestParameters.builder()
+                .parameters(GigaChatChatRequestParameters.builder()
                         .modelName(ModelName.GIGA_CHAT_PRO)
                         .temperature(0.7)
                         .maxOutputTokens(100)
+                        .useV2Completions(true)
+                        .profanityCheck(true)
                         .build())
                 .build();
 
-        GigaChatChatRequestParameters parameters = GigaChatChatRequestParameters.builder()
-                .useV2Completions(true)
-                .profanityCheck(true) // Enable filtering
-                .build();
-
-        CompletionRequestV2 requestV2 = GigaChatHelperV2.toRequestV2(chatRequest, parameters);
+        CompletionRequestV2 requestV2 = GigaChatHelperV2.toRequestV2(chatRequest);
 
         assertThat(requestV2).isNotNull();
         assertThat(requestV2.model()).isEqualTo(ModelName.GIGA_CHAT_PRO);

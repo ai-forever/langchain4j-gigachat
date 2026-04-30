@@ -203,7 +203,7 @@ public class GigaChatStreamingChatModel implements StreamingChatModel {
         var toolExecutionRequests = new ArrayList<ToolExecutionRequest>();
 
         try {
-            CompletionRequestV2 requestV2 = toRequestV2(chatRequest, defaultChatRequestParameters);
+            CompletionRequestV2 requestV2 = toRequestV2(chatRequest);
             requestV2 = requestV2.toBuilder().stream(true).build();
 
             asyncClient.completionsV2Stream(requestV2, defaultChatRequestParameters.getSessionId(),
