@@ -140,8 +140,11 @@ public class GigaChatStreamingChatModel implements StreamingChatModel {
     @Override
     public void doChat(ChatRequest chatRequest, StreamingChatResponseHandler handler) {
         boolean useV2 = shouldUseV2(chatRequest);
+        String sessionId = chatRequest.parameters() instanceof GigaChatChatRequestParameters gigaChatParameters
+                ? gigaChatParameters.getSessionId()
+                : defaultChatRequestParameters.getSessionId();
         if (useV2) {
-            doChatV2(chatRequest, handler);
+            doChatV2(chatRequest, handler, sessionId);
             return;
         }
         
@@ -192,7 +195,7 @@ public class GigaChatStreamingChatModel implements StreamingChatModel {
         }
     }
 
-    private void doChatV2(ChatRequest chatRequest, StreamingChatResponseHandler handler) {
+    private void doChatV2(ChatRequest chatRequest, StreamingChatResponseHandler handler, String sessionId) {
         var responseMetadataBuilder = ChatResponseMetadata.builder();
         var text = new StringBuffer();
         var toolExecutionRequests = new ArrayList<ToolExecutionRequest>();
@@ -201,7 +204,7 @@ public class GigaChatStreamingChatModel implements StreamingChatModel {
             CompletionRequestV2 requestV2 = toRequestV2(chatRequest);
             requestV2 = requestV2.toBuilder().stream(true).build();
 
-            asyncClient.completionsV2Stream(requestV2, defaultChatRequestParameters.getSessionId(),
+            asyncClient.completionsV2Stream(requestV2, sessionId,
                     new CompletionV2StreamHandler() {
                         @Override
                         public void onMessageDelta(CompletionMessageDeltaEventV2 event) {

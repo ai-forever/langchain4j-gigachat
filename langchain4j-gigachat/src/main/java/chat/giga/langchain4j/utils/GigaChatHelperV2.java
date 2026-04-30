@@ -421,7 +421,10 @@ public class GigaChatHelperV2 {
             case "length" -> LENGTH;
             case "function_call" -> TOOL_EXECUTION;
             case "content_filter" -> CONTENT_FILTER;
-            default -> null;
+            default -> {
+                log.warn("Unknown finish reason from v2 API: {}", reason);
+                yield null;
+            }
         };
     }
 

@@ -146,15 +146,18 @@ public class GigaChatChatModel implements ChatModel {
     @Override
     public ChatResponse doChat(ChatRequest chatRequest) {
         boolean useV2 = shouldUseV2(chatRequest);
+        String sessionId = chatRequest.parameters() instanceof GigaChatChatRequestParameters gigaChatParameters
+                ? gigaChatParameters.getSessionId()
+                : defaultChatRequestParameters.getSessionId();
         if (useV2) {
             CompletionRequestV2 requestV2 = toRequestV2(chatRequest);
             CompletionResponseV2 responseV2 = withRetry(() ->
-                            client.completionsV2(requestV2, defaultChatRequestParameters.getSessionId()),
+                            client.completionsV2(requestV2, sessionId),
                     maxRetries);
             return toResponseV2(responseV2);
         } else {
             return toResponse(withRetry(
-                    () -> client.completions(toRequest(chatRequest), defaultChatRequestParameters.getSessionId()),
+                    () -> client.completions(toRequest(chatRequest), sessionId),
                     maxRetries));
         }
     }
