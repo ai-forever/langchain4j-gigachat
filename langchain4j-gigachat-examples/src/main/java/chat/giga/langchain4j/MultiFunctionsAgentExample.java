@@ -25,7 +25,6 @@ public class MultiFunctionsAgentExample {
                         .modelName(ModelName.GIGA_CHAT_PRO_2)
                         .profanityCheck(false)
                         .build())
-                .verifySslCerts(false)
                 .logRequests(true)
                 .logResponses(true)
                 .apiUrl(System.getenv("API_URL"))

@@ -21,7 +21,6 @@ public class GigaChatImageModelExample {
                                     .authKey(System.getenv("AUTH_KEY"))
                                     .build())
                             .build())
-                    .verifySslCerts(false)
                     .logRequests(true)
                     .logResponses(true)
                     .apiUrl("test.ru")

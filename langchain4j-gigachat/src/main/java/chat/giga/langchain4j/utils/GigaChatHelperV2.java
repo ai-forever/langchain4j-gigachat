@@ -181,6 +181,12 @@ public class GigaChatHelperV2 {
                 .build();
     }
 
+    /**
+     * Находит последнее сообщение ассистента в списке сообщений ответа v2.
+     * <p>
+     * В v2 ответ может содержать несколько ассистент-сообщений (например, промежуточные reasoning и финальный ответ),
+     * поэтому берётся именно последнее.
+     */
     private static ChatMessageV2 findAssistantMessage(List<ChatMessageV2> messages) {
         return messages.stream()
                 .filter(msg -> msg.role() == ChatMessageRoleV2.ASSISTANT)
@@ -428,6 +434,10 @@ public class GigaChatHelperV2 {
         };
     }
 
+    /**
+     * Делегирует в {@link GigaChatHelper#toResponseFormat}, т.к. формат ответа (text/json_schema) не отличается между
+     * v1 и v2.
+     */
     public static chat.giga.model.completion.ResponseFormat toResponseFormatV2(ResponseFormat responseFormat,
             Boolean strict) {
         return chat.giga.langchain4j.utils.GigaChatHelper.toResponseFormat(responseFormat, strict);

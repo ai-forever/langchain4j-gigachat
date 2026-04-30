@@ -27,7 +27,6 @@ public class GigaChatStreamingChatModelExample {
                             .modelName(ModelName.GIGA_CHAT_PRO_2)
                             .responseFormat(JsonSchema.builder().build())
                             .build())
-                    .verifySslCerts(false)
                     .logRequests(true)
                     .logResponses(true)
                     .build();

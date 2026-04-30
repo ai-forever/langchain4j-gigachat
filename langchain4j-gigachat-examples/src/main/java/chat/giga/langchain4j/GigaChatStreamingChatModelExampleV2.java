@@ -66,7 +66,6 @@ public class GigaChatStreamingChatModelExampleV2 {
                             .build())
                     // URL для API v2 - используйте соответствующий эндпоинт для v2
                     .apiUrl(System.getenv("API_URL"))
-                    .verifySslCerts(false)
                     .logRequests(true)
                     .logResponses(true)
                     .build();

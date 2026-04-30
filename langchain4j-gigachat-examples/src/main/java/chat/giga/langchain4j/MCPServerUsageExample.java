@@ -39,7 +39,6 @@ public class MCPServerUsageExample {
                         .modelName(ModelName.GIGA_CHAT_MAX_2)
                         .profanityCheck(false)
                         .build())
-                .verifySslCerts(false)
                 .logRequests(true)
                 .logResponses(true)
                 .authClient(AuthClient.builder()

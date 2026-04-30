@@ -64,7 +64,6 @@ public class GigaChatV2ToolsExample {
                             .build())
                     // URL для API v2
                     .apiUrl(System.getenv("API_URL"))
-                    .verifySslCerts(false)
                     .logRequests(true)
                     .logResponses(true)
                     .build();
