@@ -7,14 +7,17 @@ import chat.giga.model.v2.completion.ChatMessageV2;
 import chat.giga.model.v2.completion.CompletionRequestV2;
 import chat.giga.model.v2.completion.CompletionResponseV2;
 import chat.giga.model.v2.completion.stream.CompletionStreamUsageV2;
+import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.chat.request.ChatRequest;
+import dev.langchain4j.model.chat.request.json.JsonObjectSchema;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.output.FinishReason;
 import dev.langchain4j.model.output.TokenUsage;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -98,7 +101,7 @@ public class GigaChatHelperV2Test {
         ChatRequest chatRequest = ChatRequest.builder()
                 .messages(List.of(UserMessage.from("test")))
                 .parameters(GigaChatChatRequestParameters.builder()
-                        .modelName(ModelName.GIGA_CHAT_PRO)
+                        .modelName(ModelName.GIGA_CHAT_ULTRA_3)
                         .useV2Completions(false)
                         .build())
                 .build();
@@ -113,7 +116,7 @@ public class GigaChatHelperV2Test {
         ChatRequest chatRequest = ChatRequest.builder()
                 .messages(List.of(UserMessage.from("Hello")))
                 .parameters(GigaChatChatRequestParameters.builder()
-                        .modelName(ModelName.GIGA_CHAT_PRO)
+                        .modelName(ModelName.GIGA_CHAT_ULTRA_3)
                         .temperature(0.7)
                         .maxOutputTokens(100)
                         .useV2Completions(true)
@@ -124,7 +127,7 @@ public class GigaChatHelperV2Test {
         CompletionRequestV2 requestV2 = GigaChatHelperV2.toRequestV2(chatRequest);
 
         assertThat(requestV2).isNotNull();
-        assertThat(requestV2.model()).isEqualTo(ModelName.GIGA_CHAT_PRO);
+        assertThat(requestV2.model()).isEqualTo(ModelName.GIGA_CHAT_ULTRA_3);
         assertThat(requestV2.disableFilter()).isFalse(); // profanityCheck=true -> disableFilter=false
         assertThat(requestV2.messages()).isNotEmpty();
         assertThat(requestV2.modelOptions()).isNotNull();
@@ -213,4 +216,236 @@ public class GigaChatHelperV2Test {
         // This is a compatibility test
         assertThat(GigaChatHelperV2.toResponseFormatV2(null, false)).isNull();
     }
+
+    @Test
+    void shouldIncludeStreamParameterInRequest() {
+        ChatRequest chatRequest = ChatRequest.builder()
+                .messages(List.of(UserMessage.from("test")))
+                .parameters(GigaChatChatRequestParameters.builder()
+                        .modelName(ModelName.GIGA_CHAT_ULTRA_3)
+                        .useV2Completions(true)
+                        .stream(true)
+                        .build())
+                .build();
+
+        CompletionRequestV2 requestV2 = GigaChatHelperV2.toRequestV2(chatRequest);
+
+        assertThat(requestV2.stream()).isTrue();
+    }
+
+    @Test
+    void shouldSetStreamToFalseWhenNotSpecified() {
+        ChatRequest chatRequest = ChatRequest.builder()
+                .messages(List.of(UserMessage.from("test")))
+                .parameters(GigaChatChatRequestParameters.builder()
+                        .modelName(ModelName.GIGA_CHAT_ULTRA_3)
+                        .useV2Completions(true)
+                        .build())
+                .build();
+
+        CompletionRequestV2 requestV2 = GigaChatHelperV2.toRequestV2(chatRequest);
+
+        assertThat(requestV2.stream()).isFalse();
+    }
+
+    @Test
+    void shouldUseExplicitToolConfigWhenProvided() {
+        ChatRequest chatRequest = ChatRequest.builder()
+                .messages(List.of(UserMessage.from("test")))
+                .parameters(GigaChatChatRequestParameters.builder()
+                        .modelName(ModelName.GIGA_CHAT_ULTRA_3)
+                        .useV2Completions(true)
+                        .toolConfig(chat.giga.model.v2.completion.ToolConfigV2.forcedFunction("my_function"))
+                        .build())
+                .build();
+
+        CompletionRequestV2 requestV2 = GigaChatHelperV2.toRequestV2(chatRequest);
+
+        assertThat(requestV2.toolConfig()).isNotNull();
+        assertThat(requestV2.toolConfig().mode()).isEqualTo("forced");
+        assertThat(requestV2.toolConfig().functionName()).isEqualTo("my_function");
+    }
+
+    @Test
+    void shouldConvertToolChoiceAutoToToolConfig() {
+        ChatRequest chatRequest = ChatRequest.builder()
+                .messages(List.of(UserMessage.from("test")))
+                .parameters(GigaChatChatRequestParameters.builder()
+                        .modelName(ModelName.GIGA_CHAT_ULTRA_3)
+                        .useV2Completions(true)
+                        .toolChoice(dev.langchain4j.model.chat.request.ToolChoice.AUTO)
+                        .build())
+                .build();
+
+        CompletionRequestV2 requestV2 = GigaChatHelperV2.toRequestV2(chatRequest);
+
+        assertThat(requestV2.toolConfig()).isNotNull();
+        assertThat(requestV2.toolConfig().mode()).isEqualTo("auto");
+    }
+
+    @Test
+    void shouldConvertToolChoiceNoneToToolConfig() {
+        ChatRequest chatRequest = ChatRequest.builder()
+                .messages(List.of(UserMessage.from("test")))
+                .parameters(GigaChatChatRequestParameters.builder()
+                        .modelName(ModelName.GIGA_CHAT_ULTRA_3)
+                        .useV2Completions(true)
+                        .toolChoice(dev.langchain4j.model.chat.request.ToolChoice.NONE)
+                        .build())
+                .build();
+
+        CompletionRequestV2 requestV2 = GigaChatHelperV2.toRequestV2(chatRequest);
+
+        assertThat(requestV2.toolConfig()).isNotNull();
+        assertThat(requestV2.toolConfig().mode()).isEqualTo("none");
+    }
+
+    @Test
+    void shouldConvertToolChoiceRequiredToToolConfig() {
+        ChatRequest chatRequest = ChatRequest.builder()
+                .messages(List.of(UserMessage.from("test")))
+                .parameters(GigaChatChatRequestParameters.builder()
+                        .modelName(ModelName.GIGA_CHAT_ULTRA_3)
+                        .useV2Completions(true)
+                        .toolChoice(dev.langchain4j.model.chat.request.ToolChoice.REQUIRED)
+                        .build())
+                .build();
+
+        CompletionRequestV2 requestV2 = GigaChatHelperV2.toRequestV2(chatRequest);
+
+        assertThat(requestV2.toolConfig()).isNotNull();
+        assertThat(requestV2.toolConfig().mode()).isEqualTo("forced");
+    }
+
+    @Test
+    void shouldPreferExplicitToolConfigOverToolChoice() {
+        ChatRequest chatRequest = ChatRequest.builder()
+                .messages(List.of(UserMessage.from("test")))
+                .parameters(GigaChatChatRequestParameters.builder()
+                        .modelName(ModelName.GIGA_CHAT_ULTRA_3)
+                        .useV2Completions(true)
+                        .toolConfig(chat.giga.model.v2.completion.ToolConfigV2.builder()
+                                .mode("forced")
+                                .toolName("my_tool")
+                                .build())
+                        .toolChoice(dev.langchain4j.model.chat.request.ToolChoice.NONE)
+                        .build())
+                .build();
+
+        CompletionRequestV2 requestV2 = GigaChatHelperV2.toRequestV2(chatRequest);
+
+        // Explicit toolConfig should take precedence over ToolChoice
+        assertThat(requestV2.toolConfig()).isNotNull();
+        assertThat(requestV2.toolConfig().mode()).isEqualTo("forced");
+        assertThat(requestV2.toolConfig().toolName()).isEqualTo("my_tool");
+    }
+
+    @Test
+    void shouldSetToolConfigToNullWhenNotSpecified() {
+        ChatRequest chatRequest = ChatRequest.builder()
+                .messages(List.of(UserMessage.from("test")))
+                .parameters(GigaChatChatRequestParameters.builder()
+                        .modelName(ModelName.GIGA_CHAT_ULTRA_3)
+                        .useV2Completions(true)
+                        .build())
+                .build();
+
+        CompletionRequestV2 requestV2 = GigaChatHelperV2.toRequestV2(chatRequest);
+
+        assertThat(requestV2.toolConfig()).isNull();
+    }
+
+
+    @Test
+    void shouldConvertFewShotExamplesFromMetadata() {
+        Map<String, Object> example1 = new java.util.LinkedHashMap<>();
+        example1.put("request", "Погода в Москве");
+        example1.put("params", Map.of("city", "Москва"));
+
+        Map<String, Object> example2 = new java.util.LinkedHashMap<>();
+        example2.put("request", "Погода в Нью-Йорке");
+        example2.put("params", Map.of("city", "Нью-Йорк"));
+
+        Map<String, Object> metadata = new java.util.LinkedHashMap<>();
+        metadata.put("few_shot_examples", List.of(example1, example2));
+
+        ToolSpecification toolSpec = ToolSpecification.builder()
+                .name("get_weather")
+                .description("Get weather for a city")
+                .parameters(JsonObjectSchema.builder()
+                        .addStringProperty("city")
+                        .build())
+                .metadata(metadata)
+                .build();
+
+        ChatRequest chatRequest = ChatRequest.builder()
+                .messages(List.of(UserMessage.from("test")))
+                .parameters(GigaChatChatRequestParameters.builder()
+                        .modelName(ModelName.GIGA_CHAT_ULTRA_3)
+                        .useV2Completions(true)
+                        .toolSpecifications(List.of(toolSpec))
+                        .build())
+                .build();
+
+        CompletionRequestV2 requestV2 = GigaChatHelperV2.toRequestV2(chatRequest);
+
+        assertThat(requestV2.tools()).isNotEmpty();
+        // Verify that the request was built correctly - the few_shot_examples
+        // should be included in the function specifications
+    }
+
+    @Test
+    void shouldMapBlacklistReasonToContentFilter() {
+        assertThat(GigaChatHelperV2.finishReasonFromV2("blacklist")).isEqualTo(FinishReason.CONTENT_FILTER);
+        assertThat(GigaChatHelperV2.finishReasonFromV2("request_blacklist")).isEqualTo(FinishReason.CONTENT_FILTER);
+        assertThat(GigaChatHelperV2.finishReasonFromV2("request_whitelist")).isEqualTo(FinishReason.CONTENT_FILTER);
+        assertThat(GigaChatHelperV2.finishReasonFromV2("request_filter")).isEqualTo(FinishReason.CONTENT_FILTER);
+        assertThat(GigaChatHelperV2.finishReasonFromV2("response_blacklist")).isEqualTo(FinishReason.CONTENT_FILTER);
+    }
+
+    @Test
+    void shouldIncludeFinishReasonInResponseAttributes() {
+        ChatMessageV2 assistantMessage = ChatMessageV2.textMessage(ChatMessageRoleV2.ASSISTANT, "Hello!");
+        CompletionResponseV2 responseV2 = CompletionResponseV2.builder()
+                .model("GigaChat-Pro")
+                .messages(List.of(assistantMessage))
+                .finishReason("blacklist")
+                .build();
+
+        ChatResponse chatResponse = GigaChatHelperV2.toResponseV2(responseV2);
+
+        assertThat(chatResponse.aiMessage().attributes()).containsEntry("finish_reason", "blacklist");
+        assertThat(chatResponse.metadata().finishReason()).isEqualTo(FinishReason.CONTENT_FILTER);
+    }
+
+
+    @Test
+    void shouldIncludeThreadIdInResponseAttributes() {
+        ChatMessageV2 assistantMessage = ChatMessageV2.textMessage(ChatMessageRoleV2.ASSISTANT, "Hello!");
+        CompletionResponseV2 responseV2 = CompletionResponseV2.builder()
+                .model("GigaChat-Pro")
+                .messages(List.of(assistantMessage))
+                .finishReason("stop")
+                .threadId("thread-abc-123")
+                .build();
+
+        ChatResponse chatResponse = GigaChatHelperV2.toResponseV2(responseV2);
+
+        assertThat(chatResponse.aiMessage().attributes()).containsEntry("thread_id", "thread-abc-123");
+    }
+
+    @Test
+    void shouldNotIncludeThreadIdWhenNull() {
+        ChatMessageV2 assistantMessage = ChatMessageV2.textMessage(ChatMessageRoleV2.ASSISTANT, "Hello!");
+        CompletionResponseV2 responseV2 = CompletionResponseV2.builder()
+                .model("GigaChat-Pro")
+                .messages(List.of(assistantMessage))
+                .finishReason("stop")
+                .build();
+
+        ChatResponse chatResponse = GigaChatHelperV2.toResponseV2(responseV2);
+
+        assertThat(chatResponse.aiMessage().attributes()).doesNotContainKey("thread_id");
+    }
+
 }

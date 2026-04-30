@@ -5,6 +5,7 @@ import chat.giga.model.v2.completion.ChatMessageRoleV2;
 import chat.giga.model.v2.completion.ChatMessageV2;
 import chat.giga.model.v2.completion.CompletionRequestV2;
 import chat.giga.model.v2.completion.CompletionResponseV2;
+import chat.giga.model.v2.completion.FewShotExampleV2;
 import chat.giga.model.v2.completion.FileRefV2;
 import chat.giga.model.v2.completion.FunctionCallContentV2;
 import chat.giga.model.v2.completion.FunctionResultContentV2;
@@ -13,6 +14,7 @@ import chat.giga.model.v2.completion.FunctionsToolPayloadV2;
 import chat.giga.model.v2.completion.MessageContentPartV2;
 import chat.giga.model.v2.completion.ModelOptionsV2;
 import chat.giga.model.v2.completion.ReasoningV2;
+import chat.giga.model.v2.completion.ToolConfigV2;
 import chat.giga.model.v2.completion.ToolV2;
 import chat.giga.model.v2.completion.stream.CompletionStreamUsageV2;
 import chat.giga.util.JsonUtils;
@@ -29,6 +31,7 @@ import dev.langchain4j.data.message.ToolExecutionResultMessage;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.request.ResponseFormat;
+import dev.langchain4j.model.chat.request.ToolChoice;
 import dev.langchain4j.model.chat.request.json.JsonSchemaElement;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.chat.response.ChatResponseMetadata;
@@ -62,6 +65,9 @@ import static dev.langchain4j.model.output.FinishReason.TOOL_EXECUTION;
  */
 @Slf4j
 public class GigaChatHelperV2 {
+
+    private static final String FINISH_REASON = "finish_reason";
+    private static final String THREAD_ID = "thread_id";
 
     /**
      * Преобразует запрос langchain4j в запрос GigaChat API v2.
@@ -114,7 +120,7 @@ public class GigaChatHelperV2 {
                 .memoryId(parameters.getMemoryId())
                 .stream(parameters.getStream())
                 .modelOptions(modelOptions)
-                .toolConfig(parameters.getToolConfig())
+                .toolConfig(resolveToolConfig(chatRequest, parameters))
                 .filterConfig(parameters.getFilterConfig())
                 .rankerOptions(parameters.getRankerOptions())
                 .userInfo(parameters.getUserInfo())
@@ -169,7 +175,17 @@ public class GigaChatHelperV2 {
             throw new IllegalArgumentException("No assistant message found in v2 response");
         }
 
+        Map<String, Object> attrs = new java.util.LinkedHashMap<>();
+        if (completions.finishReason() != null) {
+            attrs.put(FINISH_REASON, completions.finishReason());
+        }
+        if (completions.threadId() != null) {
+            attrs.put(THREAD_ID, completions.threadId());
+        }
         AiMessage aiMessage = convertChatMessageV2ToAiMessage(assistantMessage);
+        if (!attrs.isEmpty()) {
+            aiMessage = aiMessage.toBuilder().attributes(attrs).build();
+        }
 
         return ChatResponse.builder()
                 .aiMessage(aiMessage)
@@ -367,12 +383,14 @@ public class GigaChatHelperV2 {
     private static FunctionSpecificationV2 convertToolSpecificationV2(ToolSpecification toolSpecification) {
         JsonNode parameters = convertJsonSchemaToJsonNode(toolSpecification.parameters());
         JsonNode returnParameters = extractReturnParameters(toolSpecification);
+        List<FewShotExampleV2> fewShotExamples = extractFewShotExamples(toolSpecification);
 
         return FunctionSpecificationV2.builder()
                 .name(toolSpecification.name())
                 .description(toolSpecification.description())
                 .parameters(parameters)
                 .returnParameters(returnParameters)
+                .fewShotExamples(fewShotExamples)
                 .build();
     }
 
@@ -408,6 +426,26 @@ public class GigaChatHelperV2 {
         }
     }
 
+
+    private static List<FewShotExampleV2> extractFewShotExamples(ToolSpecification toolSpecification) {
+        try {
+            Map<String, Object> metadata = toolSpecification.metadata();
+            if (metadata == null) {
+                return null;
+            }
+            Object fewShotObj = metadata.get("few_shot_examples");
+            if (fewShotObj != null) {
+                return JsonUtils.objectMapper().convertValue(fewShotObj,
+                        new com.fasterxml.jackson.core.type.TypeReference<>() {
+                        });
+            }
+            return null;
+        } catch (Exception e) {
+            log.warn("Failed to extract few_shot_examples from ToolSpecification metadata: {}", e.getMessage());
+            return null;
+        }
+    }
+
     public static TokenUsage toTokenUsageV2(CompletionStreamUsageV2 usage) {
         if (usage == null) {
             return null;
@@ -426,7 +464,8 @@ public class GigaChatHelperV2 {
             case "stop" -> STOP;
             case "length" -> LENGTH;
             case "function_call" -> TOOL_EXECUTION;
-            case "content_filter" -> CONTENT_FILTER;
+            case "content_filter", "blacklist", "request_blacklist",
+                 "request_whitelist", "request_filter", "response_blacklist" -> CONTENT_FILTER;
             default -> {
                 log.warn("Unknown finish reason from v2 API: {}", reason);
                 yield null;
@@ -455,6 +494,31 @@ public class GigaChatHelperV2 {
             return null;
         }
         return !profanityCheck;
+    }
+
+
+    /**
+     * Преобразует ToolChoice из langchain4j в ToolConfigV2 для API v2. Конвертирует стандартный ToolChoice в формат,
+     * поддерживаемый GigaChat API v2:
+     */
+    private static ToolConfigV2 resolveToolConfig(ChatRequest chatRequest,
+            GigaChatChatRequestParameters parameters) {
+        // If toolConfig is explicitly set, use it (takes priority)
+        if (parameters.getToolConfig() != null) {
+            return parameters.getToolConfig();
+        }
+
+        // Convert from ToolChoice if present
+        ToolChoice toolChoice = chatRequest.parameters().toolChoice();
+        if (toolChoice != null) {
+            return switch (toolChoice) {
+                case AUTO -> ToolConfigV2.autoMode();
+                case NONE -> ToolConfigV2.noneMode();
+                case REQUIRED -> ToolConfigV2.builder().mode("forced").build();
+            };
+        }
+
+        return null;
     }
 
     /**
