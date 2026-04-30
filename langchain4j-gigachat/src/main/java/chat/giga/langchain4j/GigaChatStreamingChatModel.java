@@ -32,6 +32,7 @@ import static chat.giga.langchain4j.utils.GigaChatHelper.toRequest;
 import static chat.giga.langchain4j.utils.GigaChatHelper.toTokenUsage;
 import static chat.giga.langchain4j.utils.GigaChatHelper.toToolExecutionRequest;
 import static chat.giga.langchain4j.utils.GigaChatHelperV2.finishReasonFromV2;
+import static chat.giga.langchain4j.utils.GigaChatHelperV2.shouldUseV2;
 import static chat.giga.langchain4j.utils.GigaChatHelperV2.toRequestV2;
 import static chat.giga.langchain4j.utils.GigaChatHelperV2.toTokenUsageV2;
 import static dev.langchain4j.internal.Utils.copy;
@@ -102,18 +103,12 @@ public class GigaChatStreamingChatModel implements StreamingChatModel {
                 .maxRetriesOnAuthError(maxRetriesOnAuthError)
                 .build();
         this.listeners = copy(listeners);
-        ChatRequestParameters commonParameters;
-        if (defaultChatRequestParameters != null) {
-            commonParameters = defaultChatRequestParameters;
-        } else {
-            commonParameters = DefaultChatRequestParameters.builder().build();
-        }
-        GigaChatChatRequestParameters gigaChatParameters;
-        if (defaultChatRequestParameters != null) {
-            gigaChatParameters = defaultChatRequestParameters;
-        } else {
-            gigaChatParameters = GigaChatChatRequestParameters.builder().build();
-        }
+        ChatRequestParameters commonParameters = defaultChatRequestParameters != null
+                ? defaultChatRequestParameters
+                : DefaultChatRequestParameters.builder().build();
+        GigaChatChatRequestParameters gigaChatParameters = defaultChatRequestParameters != null
+                ? defaultChatRequestParameters
+                : GigaChatChatRequestParameters.builder().build();
         this.defaultChatRequestParameters = GigaChatChatRequestParameters.builder()
                 // default
                 .modelName(commonParameters.modelName())
@@ -220,10 +215,19 @@ public class GigaChatStreamingChatModel implements StreamingChatModel {
                                             }
                                             if (part.functionCall() != null) {
                                                 var functionCall = part.functionCall();
+                                                String arguments;
+                                                try {
+                                                    arguments = functionCall.arguments() != null
+                                                            ? chat.giga.util.JsonUtils.objectMapper()
+                                                            .writeValueAsString(functionCall.arguments())
+                                                            : "{}";
+                                                } catch (Exception e) {
+                                                    arguments = functionCall.arguments() != null
+                                                            ? functionCall.arguments().toString() : "{}";
+                                                }
                                                 var toolRequest = ToolExecutionRequest.builder()
                                                         .name(functionCall.name())
-                                                        .arguments(functionCall.arguments() != null ?
-                                                                functionCall.arguments().toString() : "{}")
+                                                        .arguments(arguments)
                                                         .build();
                                                 toolExecutionRequests.add(toolRequest);
                                             }
@@ -326,11 +330,4 @@ public class GigaChatStreamingChatModel implements StreamingChatModel {
         return defaultChatRequestParameters;
     }
 
-    private boolean shouldUseV2(ChatRequest chatRequest) {
-        Boolean requestUseV2 = null;
-        if (chatRequest.parameters() instanceof GigaChatChatRequestParameters gigaChatParameters) {
-            requestUseV2 = gigaChatParameters.getUseV2Completions();
-        }
-        return getOrDefault(requestUseV2, false);
-    }
 }

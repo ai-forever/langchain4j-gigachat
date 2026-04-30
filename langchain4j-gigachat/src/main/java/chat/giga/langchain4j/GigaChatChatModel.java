@@ -22,6 +22,7 @@ import java.util.Set;
 
 import static chat.giga.langchain4j.utils.GigaChatHelper.toRequest;
 import static chat.giga.langchain4j.utils.GigaChatHelper.toResponse;
+import static chat.giga.langchain4j.utils.GigaChatHelperV2.shouldUseV2;
 import static chat.giga.langchain4j.utils.GigaChatHelperV2.toRequestV2;
 import static chat.giga.langchain4j.utils.GigaChatHelperV2.toResponseV2;
 import static dev.langchain4j.internal.RetryUtils.withRetry;
@@ -107,18 +108,12 @@ public class GigaChatChatModel implements ChatModel {
         this.maxRetries = getOrDefault(maxRetries, 1);
         this.listeners = copy(listeners);
         this.supportedCapabilities = copy(supportedCapabilities);
-        ChatRequestParameters commonParameters;
-        if (defaultChatRequestParameters != null) {
-            commonParameters = defaultChatRequestParameters;
-        } else {
-            commonParameters = DefaultChatRequestParameters.builder().build();
-        }
-        GigaChatChatRequestParameters gigaChatParameters;
-        if (defaultChatRequestParameters != null) {
-            gigaChatParameters = defaultChatRequestParameters;
-        } else {
-            gigaChatParameters = GigaChatChatRequestParameters.builder().build();
-        }
+        ChatRequestParameters commonParameters = defaultChatRequestParameters != null
+                ? defaultChatRequestParameters
+                : DefaultChatRequestParameters.builder().build();
+        GigaChatChatRequestParameters gigaChatParameters = defaultChatRequestParameters != null
+                ? defaultChatRequestParameters
+                : GigaChatChatRequestParameters.builder().build();
 
         this.defaultChatRequestParameters = GigaChatChatRequestParameters.builder()
                 // default
@@ -164,13 +159,6 @@ public class GigaChatChatModel implements ChatModel {
         }
     }
 
-    private boolean shouldUseV2(ChatRequest chatRequest) {
-        Boolean requestUseV2 = null;
-        if (chatRequest.parameters() instanceof GigaChatChatRequestParameters gigaChatParameters) {
-            requestUseV2 = gigaChatParameters.getUseV2Completions();
-        }
-        return getOrDefault(requestUseV2, false);
-    }
 
     @Override
     public List<ChatModelListener> listeners() {

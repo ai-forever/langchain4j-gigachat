@@ -387,7 +387,11 @@ public class GigaChatHelperV2 {
 
     private static JsonNode extractReturnParameters(ToolSpecification toolSpecification) {
         try {
-            Object returnParams = toolSpecification.metadata().get("return_parameters");
+            Map<String, Object> metadata = toolSpecification.metadata();
+            if (metadata == null) {
+                return null;
+            }
+            Object returnParams = metadata.get("return_parameters");
             if (returnParams != null) {
                 ObjectMapper objectMapper = JsonUtils.objectMapper();
                 return objectMapper.valueToTree(returnParams);
@@ -438,5 +442,18 @@ public class GigaChatHelperV2 {
             return null;
         }
         return !profanityCheck;
+    }
+
+    /**
+     * Определяет, следует ли использовать API v2 для обработки запроса.
+     *
+     * @param chatRequest запрос langchain4j
+     * @return {@code true}, если запрос должен быть отправлен через API v2
+     */
+    public static boolean shouldUseV2(ChatRequest chatRequest) {
+        if (chatRequest.parameters() instanceof GigaChatChatRequestParameters gigaChatParameters) {
+            return Boolean.TRUE.equals(gigaChatParameters.getUseV2Completions());
+        }
+        return false;
     }
 }
