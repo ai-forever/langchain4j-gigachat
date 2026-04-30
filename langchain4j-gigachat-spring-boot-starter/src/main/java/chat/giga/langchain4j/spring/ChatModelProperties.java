@@ -28,4 +28,8 @@ public class ChatModelProperties {
     private Integer timeout;
     private Integer maxRetries;
     private String reasoningEffort;
+    private Boolean disableFilter;
+    private String assistantId;
+    private String memoryId;
+    private List<String> flags;
 }

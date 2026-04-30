@@ -137,6 +137,10 @@ public class GigaChatHelperV2 {
             warnings.add("functionCall parameter may not be fully compatible with v2 API. Use toolConfig instead.");
         }
 
+        if (parameters.getProfanityCheck() != null && parameters.getProfanityCheck()) {
+            warnings.add("profanityCheck parameter is replaced by disableFilter in v2 API. Use disableFilter instead.");
+        }
+
         if (!warnings.isEmpty()) {
             // Log warnings but don't fail - some parameters might still work
             log.warn("GigaChat v2 API warnings: {}", String.join("; ", warnings));

@@ -48,6 +48,10 @@ public class AutoConfig {
                         .maxOutputTokens(chatModelProperties.getMaxTokens())
                         .stopSequences(chatModelProperties.getStop())
                         .reasoningEffort(chatModelProperties.getReasoningEffort())
+                        .disableFilter(chatModelProperties.getDisableFilter())
+                        .assistantId(chatModelProperties.getAssistantId())
+                        .memoryId(chatModelProperties.getMemoryId())
+                        .flags(chatModelProperties.getFlags())
                         .build())
                 .build();
     }
@@ -77,6 +81,10 @@ public class AutoConfig {
                         .maxOutputTokens(chatModelProperties.getMaxTokens())
                         .stopSequences(chatModelProperties.getStop())
                         .reasoningEffort(chatModelProperties.getReasoningEffort())
+                        .disableFilter(chatModelProperties.getDisableFilter())
+                        .assistantId(chatModelProperties.getAssistantId())
+                        .memoryId(chatModelProperties.getMemoryId())
+                        .flags(chatModelProperties.getFlags())
                         .build())
                 .build();
     }
