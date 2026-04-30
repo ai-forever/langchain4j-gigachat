@@ -52,6 +52,9 @@ public class AutoConfig {
                         .assistantId(chatModelProperties.getAssistantId())
                         .memoryId(chatModelProperties.getMemoryId())
                         .flags(chatModelProperties.getFlags())
+                        .filterConfig(chatModelProperties.getFilterConfig())
+                        .rankerOptions(chatModelProperties.getRankerOptions())
+                        .userInfo(chatModelProperties.getUserInfo())
                         .build())
                 .build();
     }
@@ -85,6 +88,9 @@ public class AutoConfig {
                         .assistantId(chatModelProperties.getAssistantId())
                         .memoryId(chatModelProperties.getMemoryId())
                         .flags(chatModelProperties.getFlags())
+                        .filterConfig(chatModelProperties.getFilterConfig())
+                        .rankerOptions(chatModelProperties.getRankerOptions())
+                        .userInfo(chatModelProperties.getUserInfo())
                         .build())
                 .build();
     }

@@ -1,6 +1,9 @@
 package chat.giga.langchain4j;
 
+import chat.giga.model.v2.completion.FilterConfigV2;
+import chat.giga.model.v2.completion.RankerOptionsV2;
 import chat.giga.model.v2.completion.ToolConfigV2;
+import chat.giga.model.v2.completion.UserInfoV2;
 import dev.langchain4j.model.chat.request.ChatRequestParameters;
 import dev.langchain4j.model.chat.request.DefaultChatRequestParameters;
 import lombok.Getter;
@@ -111,6 +114,23 @@ public class GigaChatChatRequestParameters extends DefaultChatRequestParameters 
      */
     private final String reasoningEffort;
 
+    /**
+     * Настройки фильтрации (в API v2). Позволяют точечно управлять фильтрами запроса и ответа (нейрофильльтр,
+     * чёрный/белый список).
+     */
+    private final FilterConfigV2 filterConfig;
+
+    /**
+     * Настройки ранжирования тулов/функций перед передачей в модель (в API v2).
+     */
+    private final RankerOptionsV2 rankerOptions;
+
+    /**
+     * Дополнительная информация о клиенте для улучшения качества ответов (в API v2). Например, часовой пояс для
+     * согласования с тулом {@code get_datetime}.
+     */
+    private final UserInfoV2 userInfo;
+
     private GigaChatChatRequestParameters(GigaChatBuilder builder) {
         super(builder);
         this.updateInterval = builder.updateInterval;
@@ -128,6 +148,9 @@ public class GigaChatChatRequestParameters extends DefaultChatRequestParameters 
         this.flags = builder.flags;
         this.reasoningEffort = builder.reasoningEffort;
         this.toolConfig = builder.toolConfig;
+        this.filterConfig = builder.filterConfig;
+        this.rankerOptions = builder.rankerOptions;
+        this.userInfo = builder.userInfo;
     }
 
     /**
@@ -178,6 +201,9 @@ public class GigaChatChatRequestParameters extends DefaultChatRequestParameters 
         private List<String> flags;
         private String reasoningEffort;
         private ToolConfigV2 toolConfig;
+        private FilterConfigV2 filterConfig;
+        private RankerOptionsV2 rankerOptions;
+        private UserInfoV2 userInfo;
 
         /**
          * Устанавливает минимальный интервал в секундах между отправкой токенов в потоковом режиме.
@@ -369,6 +395,43 @@ public class GigaChatChatRequestParameters extends DefaultChatRequestParameters 
         }
 
         /**
+         * Устанавливает настройки фильтрации (в API v2).
+         * <p>
+         * Позволяют точечно управлять фильтрами запроса и ответа (нейрофильльтр, чёрный/белый список).
+         *
+         * @param filterConfig настройки фильтрации
+         * @return текущий builder
+         */
+        public GigaChatBuilder filterConfig(FilterConfigV2 filterConfig) {
+            this.filterConfig = filterConfig;
+            return this;
+        }
+
+        /**
+         * Устанавливает настройки ранжирования тулов/функций (в API v2).
+         *
+         * @param rankerOptions настройки ранжирования
+         * @return текущий builder
+         */
+        public GigaChatBuilder rankerOptions(RankerOptionsV2 rankerOptions) {
+            this.rankerOptions = rankerOptions;
+            return this;
+        }
+
+        /**
+         * Устанавливает дополнительную информацию о клиенте (в API v2).
+         * <p>
+         * Например, часовой пояс для согласования с тулом {@code get_datetime}.
+         *
+         * @param userInfo информация о клиенте
+         * @return текущий builder
+         */
+        public GigaChatBuilder userInfo(UserInfoV2 userInfo) {
+            this.userInfo = userInfo;
+            return this;
+        }
+
+        /**
          * Создает экземпляр {@link GigaChatChatRequestParameters} с текущими настройками builder.
          *
          * @return новый экземпляр параметров запроса
@@ -405,6 +468,9 @@ public class GigaChatChatRequestParameters extends DefaultChatRequestParameters 
                 flags(getOrDefault(chatChatRequestParameters.getFlags(), flags));
                 reasoningEffort(getOrDefault(chatChatRequestParameters.getReasoningEffort(), reasoningEffort));
                 toolConfig(getOrDefault(chatChatRequestParameters.getToolConfig(), toolConfig));
+                filterConfig(getOrDefault(chatChatRequestParameters.getFilterConfig(), filterConfig));
+                rankerOptions(getOrDefault(chatChatRequestParameters.getRankerOptions(), rankerOptions));
+                userInfo(getOrDefault(chatChatRequestParameters.getUserInfo(), userInfo));
             }
             return this;
         }

@@ -115,9 +115,11 @@ public class GigaChatHelperV2 {
                 .stream(parameters.getStream())
                 .modelOptions(modelOptions)
                 .toolConfig(parameters.getToolConfig())
+                .filterConfig(parameters.getFilterConfig())
+                .rankerOptions(parameters.getRankerOptions())
+                .userInfo(parameters.getUserInfo())
                 .tools(convertToolsV2(chatRequest.toolSpecifications()));
 
-        // Add flags only if not null
         if (parameters.getFlags() != null) {
             builder.flags(parameters.getFlags());
         }
