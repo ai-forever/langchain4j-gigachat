@@ -28,12 +28,15 @@ public class MultiFunctionsAgentExample {
                 .verifySslCerts(false)
                 .logRequests(true)
                 .logResponses(true)
+                .apiUrl(System.getenv("API_URL"))
                 .authClient(AuthClient.builder()
                         .withOAuth(AuthClientBuilder.OAuthBuilder.builder()
                                 .scope(Scope.GIGACHAT_API_PERS)
-                                .authKey("testkey")
+                                .authKey(System.getenv("AUTH_KEY"))
                                 .build())
                         .build())
+                .logResponses(true)
+                .logRequests(true)
                 .build();
 
         Assistant assistant = AiServices.builder(Assistant.class)

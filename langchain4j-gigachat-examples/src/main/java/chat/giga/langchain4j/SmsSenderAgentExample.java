@@ -42,7 +42,7 @@ public class SmsSenderAgentExample {
                                         .build())
                                 .build())
                         .build())
-                .apiUrl("https://gigachat-ift.sberdevices.delta.sbrf.ru/v1")
+                .apiUrl(System.getenv("API_URL"))
                 .build();
 
         ChatMemory chatMemory = MessageWindowChatMemory.builder()

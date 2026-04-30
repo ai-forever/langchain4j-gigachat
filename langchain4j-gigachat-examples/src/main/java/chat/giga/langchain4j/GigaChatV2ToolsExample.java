@@ -48,7 +48,7 @@ public class GigaChatV2ToolsExample {
                     .authClient(AuthClient.builder()
                             .withOAuth(AuthClientBuilder.OAuthBuilder.builder()
                                     .scope(Scope.GIGACHAT_API_PERS)
-                                    .authKey("key")  // Замените на ваш ключ API
+                                    .authKey(System.getenv("AUTH_KEY"))
                                     .build())
                             .build())
                     .defaultChatRequestParameters(GigaChatChatRequestParameters.builder()
@@ -63,7 +63,7 @@ public class GigaChatV2ToolsExample {
                             .temperature(0.7)
                             .build())
                     // URL для API v2
-                    .apiUrl("https://gigachat-ift.sberdevices.delta.sbrf.ru/v2")
+                    .apiUrl(System.getenv("API_URL"))
                     .verifySslCerts(false)
                     .logRequests(true)
                     .logResponses(true)

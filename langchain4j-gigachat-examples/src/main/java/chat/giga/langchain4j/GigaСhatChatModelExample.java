@@ -14,7 +14,7 @@ public class GigaСhatChatModelExample {
                     .defaultChatRequestParameters(GigaChatChatRequestParameters.builder()
                             .modelName(ModelName.GIGA_CHAT_PRO_2)
                             .build())
-                    .apiUrl("https://gigachat-ift.sberdevices.delta.sbrf.ru/v1")
+                    .apiUrl(System.getenv("API_URL"))
                     .authClient(AuthClient.builder()
                             .withCertificatesAuth(new JdkHttpClientBuilder()
                                     .ssl(SSL.builder()

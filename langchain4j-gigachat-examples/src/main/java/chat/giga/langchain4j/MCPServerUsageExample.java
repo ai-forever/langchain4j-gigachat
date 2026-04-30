@@ -45,7 +45,7 @@ public class MCPServerUsageExample {
                 .authClient(AuthClient.builder()
                         .withOAuth(AuthClientBuilder.OAuthBuilder.builder()
                                 .scope(Scope.GIGACHAT_API_PERS)
-                                .authKey("testkey")
+                                .authKey(System.getenv("AUTH_KEY"))
                                 .build())
                         .build())
                 .build();

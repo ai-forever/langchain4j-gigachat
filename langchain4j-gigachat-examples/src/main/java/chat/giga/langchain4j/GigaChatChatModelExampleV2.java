@@ -36,7 +36,7 @@ public class GigaChatChatModelExampleV2 {
                             .repetitionPenalty(1.1f)
                             .build())
                     // URL для API v2 - используйте соответствующий эндпоинт для v2
-                    .apiUrl("https://gigachat-ift.sberdevices.delta.sbrf.ru/v2")
+                    .apiV2Url(System.getenv("API_URL_V2"))
                     .authClient(AuthClient.builder()
                             .withCertificatesAuth(new JdkHttpClientBuilder()
                                     .ssl(SSL.builder()
