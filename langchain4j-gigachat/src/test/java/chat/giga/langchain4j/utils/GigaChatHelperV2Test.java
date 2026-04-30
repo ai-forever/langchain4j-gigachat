@@ -79,11 +79,18 @@ public class GigaChatHelperV2Test {
 
     @Test
     void shouldConvertChatMessageV2ToAiMessage() {
-        // Create a simple v2 message with text content
         ChatMessageV2 message = ChatMessageV2.textMessage(ChatMessageRoleV2.ASSISTANT, "Hello world");
+        CompletionResponseV2 response = CompletionResponseV2.builder()
+                .model("GigaChat-Pro")
+                .messages(List.of(message))
+                .finishReason("stop")
+                .build();
 
-        // Note: This tests internal method indirectly through public API
-        // In real test we would need to create a full CompletionResponseV2
+        ChatResponse chatResponse = GigaChatHelperV2.toResponseV2(response);
+
+        assertThat(chatResponse).isNotNull();
+        assertThat(chatResponse.aiMessage().text()).isEqualTo("Hello world");
+        assertThat(chatResponse.metadata().modelName()).isEqualTo("GigaChat-Pro");
     }
 
     @Test

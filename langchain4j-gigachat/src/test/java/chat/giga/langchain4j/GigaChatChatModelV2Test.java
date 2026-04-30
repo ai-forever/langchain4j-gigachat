@@ -1,25 +1,27 @@
 package chat.giga.langchain4j;
 
-import chat.giga.client.GigaChatClient;
 import chat.giga.client.auth.AuthClient;
 import chat.giga.http.client.HttpClient;
 import chat.giga.model.ModelName;
-import chat.giga.model.v2.completion.ChatMessageRoleV2;
+import chat.giga.model.v2.completion.CompletionRequestV2;
 import chat.giga.model.v2.completion.CompletionResponseV2;
-import chat.giga.model.v2.completion.stream.CompletionStreamUsageV2;
 import chat.giga.util.JsonUtils;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import org.junit.jupiter.api.BeforeEach;
+import dev.langchain4j.data.message.UserMessage;
+import dev.langchain4j.model.chat.request.ChatRequest;
+import dev.langchain4j.model.chat.request.DefaultChatRequestParameters;
+import dev.langchain4j.model.chat.response.ChatResponse;
+import dev.langchain4j.model.output.FinishReason;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.io.IOException;
 import java.util.List;
 
+import static chat.giga.langchain4j.utils.GigaChatHelperV2.toRequestV2;
+import static chat.giga.langchain4j.utils.GigaChatHelperV2.toResponseV2;
 import static org.assertj.core.api.Assertions.assertThat;
-
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @ExtendWith(MockitoExtension.class)
 public class GigaChatChatModelV2Test {
@@ -28,137 +30,107 @@ public class GigaChatChatModelV2Test {
     HttpClient httpClient;
     @Mock
     AuthClient authClient;
-    @Mock
-    GigaChatClient gigaChatClient;
-
-    GigaChatChatModel model;
-    ObjectMapper objectMapper = JsonUtils.objectMapper();
-
-    @BeforeEach
-    void setUp() {
-    }
 
     @Test
     void shouldCreateModelWithV2Enabled() {
-        model = GigaChatChatModel.builder()
+        GigaChatChatModel model = GigaChatChatModel.builder()
                 .authClient(authClient)
                 .apiHttpClient(httpClient)
                 .apiUrl("hostTest")
                 .defaultChatRequestParameters(GigaChatChatRequestParameters.builder()
-                        .temperature(1.0)
                         .modelName(ModelName.GIGA_CHAT_PRO)
                         .useV2Completions(true)
                         .build())
                 .build();
 
+        assertThat(model.defaultRequestParameters()).isInstanceOf(GigaChatChatRequestParameters.class);
         assertThat(model.defaultRequestParameters().getUseV2Completions()).isTrue();
     }
 
     @Test
-    void shouldCreateV2RequestWithProperParameters() {
-        GigaChatChatRequestParameters parameters = GigaChatChatRequestParameters.builder()
-                .modelName(ModelName.GIGA_CHAT_PRO)
-                .temperature(0.7)
-                .maxOutputTokens(100)
-                .profanityCheck(true)
-                .useV2Completions(true)
-                .assistantId("test-assistant")
-                .memoryId("test-memory")
-                .reasoningEffort("medium")
-                .flags(List.of("preprocess"))
-                .build();
-
-        assertThat(parameters.getUseV2Completions()).isTrue();
-        assertThat(parameters.getAssistantId()).isEqualTo("test-assistant");
-        assertThat(parameters.getMemoryId()).isEqualTo("test-memory");
-        assertThat(parameters.getReasoningEffort()).isEqualTo("medium");
-        assertThat(parameters.getFlags()).containsExactly("preprocess");
-        // profanityCheck should map to disableFilter with inverse logic
-        assertThat(parameters.getProfanityCheck()).isTrue();
-    }
-
-    @Test
-    void shouldValidateV2Parameters() {
-        // Test that v1 parameters with v2 mode produce warnings but don't fail
-        GigaChatChatRequestParameters parameters = GigaChatChatRequestParameters.builder()
-                .modelName(ModelName.GIGA_CHAT_PRO)
-                .useV2Completions(true)
-                .functionCall("auto")
-                .attachments(List.of("file1"))
-                .build();
-
-        // Should not throw exception, only log warnings
-        assertThat(parameters.getUseV2Completions()).isTrue();
-        assertThat(parameters.getFunctionCall()).isEqualTo("auto");
-    }
-
-    @Test
-    void shouldConvertDisableFilterCorrectly() {
-        // Test profanityCheck -> disableFilter mapping
-        GigaChatChatRequestParameters paramsWithProfanityCheck = GigaChatChatRequestParameters.builder()
-                .profanityCheck(true)
-                .useV2Completions(true)
-                .build();
-
-        GigaChatChatRequestParameters paramsWithoutProfanityCheck = GigaChatChatRequestParameters.builder()
-                .profanityCheck(false)
-                .useV2Completions(true)
-                .build();
-
-        // When profanityCheck = true (enable filtering), disableFilter should be false
-        // When profanityCheck = false (disable filtering), disableFilter should be true
-        // Logic: disableFilter = !profanityCheck
-        assertThat(paramsWithProfanityCheck.getProfanityCheck()).isTrue();
-        assertThat(paramsWithoutProfanityCheck.getProfanityCheck()).isFalse();
-        // Note: profanityCheck defaults to false in builder, not null
-    }
-
-    @Test
-    void shouldSupportReasoningEffortParameter() {
-        GigaChatChatRequestParameters parameters = GigaChatChatRequestParameters.builder()
-                .modelName(ModelName.GIGA_CHAT_PRO)
-                .useV2Completions(true)
-                .reasoningEffort("medium")
-                .build();
-
-        assertThat(parameters.getReasoningEffort()).isEqualTo("medium");
-
-        // Test different effort levels
-        GigaChatChatRequestParameters lowEffort = GigaChatChatRequestParameters.builder()
-                .reasoningEffort("low")
-                .build();
-
-        GigaChatChatRequestParameters highEffort = GigaChatChatRequestParameters.builder()
-                .reasoningEffort("high")
-                .build();
-
-        assertThat(lowEffort.getReasoningEffort()).isEqualTo("low");
-        assertThat(highEffort.getReasoningEffort()).isEqualTo("high");
-    }
-
-    @Test
-    void shouldSupportV2StreamingModel() {
-        GigaChatStreamingChatModel streamingModel = GigaChatStreamingChatModel.builder()
+    void shouldCreateModelWithV2DisabledByDefault() {
+        GigaChatChatModel model = GigaChatChatModel.builder()
                 .authClient(authClient)
                 .apiHttpClient(httpClient)
                 .apiUrl("hostTest")
-                .defaultChatRequestParameters(GigaChatChatRequestParameters.builder()
-                        .modelName(ModelName.GIGA_CHAT_PRO)
-                        .useV2Completions(true)
-                        .build())
                 .build();
 
-        assertThat(streamingModel.defaultRequestParameters().getUseV2Completions()).isTrue();
+        assertThat(model.defaultRequestParameters().getUseV2Completions()).isFalse();
     }
 
     @Test
-    void shouldHandleV2ResponseConversion() throws IOException {
-        // Test data for v2 response
+    void shouldConvertDisableFilterFromProfanityCheck() {
+        ChatRequest chatRequestWithProfanity = ChatRequest.builder()
+                .messages(List.of(UserMessage.from("test")))
+                .parameters(GigaChatChatRequestParameters.builder()
+                        .modelName(ModelName.GIGA_CHAT_PRO)
+                        .useV2Completions(true)
+                        .profanityCheck(true)
+                        .build())
+                .build();
+
+        CompletionRequestV2 requestWithProfanity = toRequestV2(chatRequestWithProfanity);
+        assertThat(requestWithProfanity.disableFilter()).isFalse();
+
+        ChatRequest chatRequestWithoutProfanity = ChatRequest.builder()
+                .messages(List.of(UserMessage.from("test")))
+                .parameters(GigaChatChatRequestParameters.builder()
+                        .modelName(ModelName.GIGA_CHAT_PRO)
+                        .useV2Completions(true)
+                        .profanityCheck(false)
+                        .build())
+                .build();
+
+        CompletionRequestV2 requestWithoutProfanity = toRequestV2(chatRequestWithoutProfanity);
+        assertThat(requestWithoutProfanity.disableFilter()).isFalse();
+    }
+
+    @Test
+    void shouldPreferDisableFilterOverProfanityCheck() {
+        ChatRequest chatRequest = ChatRequest.builder()
+                .messages(List.of(UserMessage.from("test")))
+                .parameters(GigaChatChatRequestParameters.builder()
+                        .modelName(ModelName.GIGA_CHAT_PRO)
+                        .useV2Completions(true)
+                        .disableFilter(true)
+                        .profanityCheck(true)
+                        .build())
+                .build();
+
+        CompletionRequestV2 requestV2 = toRequestV2(chatRequest);
+        assertThat(requestV2.disableFilter()).isTrue();
+    }
+
+    @Test
+    void shouldIncludeV2SpecificParametersInRequest() {
+        ChatRequest chatRequest = ChatRequest.builder()
+                .messages(List.of(UserMessage.from("test")))
+                .parameters(GigaChatChatRequestParameters.builder()
+                        .modelName(ModelName.GIGA_CHAT_PRO)
+                        .useV2Completions(true)
+                        .assistantId("assistant-123")
+                        .memoryId("memory-456")
+                        .reasoningEffort("medium")
+                        .flags(List.of("preprocess"))
+                        .build())
+                .build();
+
+        CompletionRequestV2 requestV2 = toRequestV2(chatRequest);
+
+        assertThat(requestV2.assistantId()).isEqualTo("assistant-123");
+        assertThat(requestV2.memoryId()).isEqualTo("memory-456");
+        assertThat(requestV2.modelOptions()).isNotNull();
+        assertThat(requestV2.modelOptions().reasoning()).isNotNull();
+        assertThat(requestV2.modelOptions().reasoning().effort()).isEqualTo("medium");
+        assertThat(requestV2.flags()).containsExactly("preprocess");
+    }
+
+    @Test
+    void shouldHandleV2ResponseConversion() throws Exception {
         String v2ResponseJson = """
                 {
                     "id": "chatcmpl-123",
                     "object": "chat.completion",
-                    "created": 1677652288,
                     "model": "GigaChat-Pro",
                     "messages": [
                         {
@@ -179,38 +151,46 @@ public class GigaChatChatModelV2Test {
                 }
                 """;
 
-        CompletionResponseV2 response = objectMapper.readValue(v2ResponseJson, CompletionResponseV2.class);
-        assertThat(response).isNotNull();
-        assertThat(response.model()).isEqualTo("GigaChat-Pro");
-        assertThat(response.messages()).isNotEmpty();
-        assertThat(response.finishReason()).isEqualTo("stop");
-        assertThat(response.usage()).isNotNull();
-        assertThat(response.usage().promptTokens()).isEqualTo(10);
-        assertThat(response.usage().completionTokens()).isEqualTo(20);
-        assertThat(response.usage().totalTokens()).isEqualTo(30);
+        CompletionResponseV2 responseV2 = JsonUtils.objectMapper()
+                .readValue(v2ResponseJson, CompletionResponseV2.class);
+        ChatResponse chatResponse = toResponseV2(responseV2);
+
+        assertThat(chatResponse.aiMessage().text()).isEqualTo("Hello! How can I help you today?");
+        assertThat(chatResponse.metadata().modelName()).isEqualTo("GigaChat-Pro");
+        assertThat(chatResponse.metadata().finishReason()).isEqualTo(FinishReason.STOP);
+        assertThat(chatResponse.metadata().tokenUsage()).isNotNull();
+        assertThat(chatResponse.metadata().tokenUsage().inputTokenCount()).isEqualTo(10);
+        assertThat(chatResponse.metadata().tokenUsage().outputTokenCount()).isEqualTo(20);
+        assertThat(chatResponse.metadata().tokenUsage().totalTokenCount()).isEqualTo(30);
     }
 
     @Test
-    void shouldHandleV2ResponseWithToolCalls() throws IOException {
-        // Simplified test for v2 response structure
-        // This test verifies that we can work with v2 response objects
-        CompletionStreamUsageV2 usage = CompletionStreamUsageV2.builder()
-                .promptTokens(15)
-                .completionTokens(25)
-                .totalTokens(40)
+    void shouldThrowWhenDefaultParametersNotGigaChatAndNoV2() {
+        ChatRequest chatRequest = ChatRequest.builder()
+                .messages(List.of(UserMessage.from("test")))
+                .parameters(DefaultChatRequestParameters.builder()
+                        .modelName(ModelName.GIGA_CHAT_PRO)
+                        .build())
                 .build();
 
-        // Create a simple v2 response with mock data
-        // Note: In real implementation, we would use actual SDK response parsing
-        assertThat(usage).isNotNull();
-        assertThat(usage.promptTokens()).isEqualTo(15);
-        assertThat(usage.completionTokens()).isEqualTo(25);
-        assertThat(usage.totalTokens()).isEqualTo(40);
+        assertThatThrownBy(() -> toRequestV2(chatRequest))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("Cannot convert to v2 request when useV2Completions is false");
+    }
 
-        // Test that v2 response types are available
-        assertThat(ChatMessageRoleV2.ASSISTANT).isNotNull();
-        assertThat(ChatMessageRoleV2.USER).isNotNull();
-        assertThat(ChatMessageRoleV2.SYSTEM).isNotNull();
-        assertThat(ChatMessageRoleV2.TOOL).isNotNull();
+    @Test
+    void shouldSupportV2StreamingModel() {
+        GigaChatStreamingChatModel streamingModel = GigaChatStreamingChatModel.builder()
+                .authClient(authClient)
+                .apiHttpClient(httpClient)
+                .apiUrl("hostTest")
+                .defaultChatRequestParameters(GigaChatChatRequestParameters.builder()
+                        .modelName(ModelName.GIGA_CHAT_PRO)
+                        .useV2Completions(true)
+                        .build())
+                .build();
+
+        assertThat(streamingModel.defaultRequestParameters()).isInstanceOf(GigaChatChatRequestParameters.class);
+        assertThat(streamingModel.defaultRequestParameters().getUseV2Completions()).isTrue();
     }
 }
