@@ -323,7 +323,7 @@ public class GigaChatHelperV2 {
                                 .build())
                         .build();
             } catch (Exception e) {
-                throw new RuntimeException("Failed to convert tool execution result to JSON", e);
+                throw new IllegalStateException("Failed to convert tool execution result to JSON", e);
             }
         } else {
             throw new IllegalArgumentException("Unsupported message type: " + message.getClass().getName());
@@ -338,7 +338,7 @@ public class GigaChatHelperV2 {
             return JsonUtils.objectMapper().readValue(json, new TypeReference<>() {
             });
         } catch (JsonProcessingException e) {
-            throw new RuntimeException("Failed to parse tool arguments", e);
+            throw new IllegalArgumentException("Failed to parse tool arguments", e);
         }
     }
 
@@ -381,7 +381,7 @@ public class GigaChatHelperV2 {
         try {
             return objectMapper.valueToTree(schemaMap);
         } catch (Exception e) {
-            throw new RuntimeException("Failed to convert JSON schema to JsonNode", e);
+            throw new IllegalStateException("Failed to convert JSON schema to JsonNode", e);
         }
     }
 
@@ -398,7 +398,7 @@ public class GigaChatHelperV2 {
             }
             return null;
         } catch (Exception e) {
-            throw new RuntimeException("Failed to extract return_parameters from ToolSpecification metadata", e);
+            throw new IllegalStateException("Failed to extract return_parameters from ToolSpecification metadata", e);
         }
     }
 
