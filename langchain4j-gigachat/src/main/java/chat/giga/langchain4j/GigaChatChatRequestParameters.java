@@ -1,5 +1,6 @@
 package chat.giga.langchain4j;
 
+import chat.giga.model.v2.completion.CompletionStorageV2;
 import chat.giga.model.v2.completion.FilterConfigV2;
 import chat.giga.model.v2.completion.RankerOptionsV2;
 import chat.giga.model.v2.completion.ToolConfigV2;
@@ -131,6 +132,12 @@ public class GigaChatChatRequestParameters extends DefaultChatRequestParameters 
      */
     private final UserInfoV2 userInfo;
 
+    /**
+     * Данные хранения контекста на стороне GigaChat (объект {@code storage} в API v2). Позволяет сохранять историю
+     * сообщений на сервере и управлять тредами.
+     */
+    private final CompletionStorageV2 storage;
+
     private GigaChatChatRequestParameters(GigaChatBuilder builder) {
         super(builder);
         this.updateInterval = builder.updateInterval;
@@ -151,6 +158,7 @@ public class GigaChatChatRequestParameters extends DefaultChatRequestParameters 
         this.filterConfig = builder.filterConfig;
         this.rankerOptions = builder.rankerOptions;
         this.userInfo = builder.userInfo;
+        this.storage = builder.storage;
     }
 
     /**
@@ -204,6 +212,7 @@ public class GigaChatChatRequestParameters extends DefaultChatRequestParameters 
         private FilterConfigV2 filterConfig;
         private RankerOptionsV2 rankerOptions;
         private UserInfoV2 userInfo;
+        private CompletionStorageV2 storage;
 
         /**
          * Устанавливает минимальный интервал в секундах между отправкой токенов в потоковом режиме.
@@ -426,6 +435,22 @@ public class GigaChatChatRequestParameters extends DefaultChatRequestParameters 
          * @param userInfo информация о клиенте
          * @return текущий builder
          */
+        /**
+         * Устанавливает данные хранения контекста на стороне GigaChat (в API v2).
+         * <p>
+         * Позволяет сохранять историю сообщений на сервере и управлять тредами: задавать максимальное количество
+         * сообщений в контексте ({@code limit}), передавать идентификатор треда ({@code thread_id}) и дополнительные
+         * метаданные.
+         *
+         * @param storage данные хранения контекста
+         * @return текущий builder
+         */
+        public GigaChatBuilder storage(CompletionStorageV2 storage) {
+            this.storage = storage;
+            return this;
+        }
+
+
         public GigaChatBuilder userInfo(UserInfoV2 userInfo) {
             this.userInfo = userInfo;
             return this;
@@ -471,6 +496,7 @@ public class GigaChatChatRequestParameters extends DefaultChatRequestParameters 
                 filterConfig(getOrDefault(chatChatRequestParameters.getFilterConfig(), filterConfig));
                 rankerOptions(getOrDefault(chatChatRequestParameters.getRankerOptions(), rankerOptions));
                 userInfo(getOrDefault(chatChatRequestParameters.getUserInfo(), userInfo));
+                storage(getOrDefault(chatChatRequestParameters.getStorage(), storage));
             }
             return this;
         }

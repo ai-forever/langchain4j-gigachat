@@ -124,6 +124,7 @@ public class GigaChatHelperV2 {
                 .filterConfig(parameters.getFilterConfig())
                 .rankerOptions(parameters.getRankerOptions())
                 .userInfo(parameters.getUserInfo())
+                .storage(parameters.getStorage())
                 .tools(convertToolsV2(chatRequest.toolSpecifications()));
 
         if (parameters.getFlags() != null) {
