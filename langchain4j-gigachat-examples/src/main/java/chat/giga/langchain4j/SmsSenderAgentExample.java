@@ -27,7 +27,6 @@ public class SmsSenderAgentExample {
                         .modelName(ModelName.GIGA_CHAT_PRO_2)
                         .profanityCheck(false)
                         .build())
-                .verifySslCerts(false)
                 .logRequests(true)
                 .logResponses(true)
                 .authClient(AuthClient.builder()
@@ -42,7 +41,7 @@ public class SmsSenderAgentExample {
                                         .build())
                                 .build())
                         .build())
-                .apiUrl("https://gigachat-ift.sberdevices.delta.sbrf.ru/v1")
+                .apiUrl(System.getenv("API_URL"))
                 .build();
 
         ChatMemory chatMemory = MessageWindowChatMemory.builder()

@@ -3,6 +3,8 @@ package chat.giga.langchain4j;
 import chat.giga.client.GigaChatClient;
 import chat.giga.client.auth.AuthClient;
 import chat.giga.http.client.HttpClient;
+import chat.giga.model.v2.completion.CompletionRequestV2;
+import chat.giga.model.v2.completion.CompletionResponseV2;
 import dev.langchain4j.model.chat.Capability;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.listener.ChatModelListener;
@@ -20,6 +22,9 @@ import java.util.Set;
 
 import static chat.giga.langchain4j.utils.GigaChatHelper.toRequest;
 import static chat.giga.langchain4j.utils.GigaChatHelper.toResponse;
+import static chat.giga.langchain4j.utils.GigaChatHelperV2.shouldUseV2;
+import static chat.giga.langchain4j.utils.GigaChatHelperV2.toRequestV2;
+import static chat.giga.langchain4j.utils.GigaChatHelperV2.toResponseV2;
 import static dev.langchain4j.internal.RetryUtils.withRetry;
 import static dev.langchain4j.internal.Utils.copy;
 import static dev.langchain4j.internal.Utils.firstNotNull;
@@ -35,18 +40,49 @@ import static dev.langchain4j.model.chat.Capability.RESPONSE_FORMAT_JSON_SCHEMA;
  */
 public class GigaChatChatModel implements ChatModel {
 
+    /**
+     * Клиент для работы с GigaChat API
+     */
     private final GigaChatClient client;
+
+    /** Максимальное количество повторных попыток при ошибках сети */
     private final Integer maxRetries;
+
+    /** Слушатели событий модели */
     private final List<ChatModelListener> listeners;
+
+    /** Поддерживаемые возможности модели */
     private final Set<Capability> supportedCapabilities;
+
+    /** Параметры запроса по умолчанию */
     private final GigaChatChatRequestParameters defaultChatRequestParameters;
 
+    /**
+     * Создает экземпляр GigaChatChatModel с использованием builder pattern.
+     *
+     * @param apiHttpClient HTTP-клиент для API запросов (опционально)
+     * @param authClient клиент аутентификации для получения токенов доступа
+     * @param readTimeout таймаут чтения в миллисекундах (опционально)
+     * @param connectTimeout таймаут подключения в миллисекундах (опционально)
+     * @param apiUrl URL API GigaChat (опционально, по умолчанию используется официальный эндпоинт)
+     * @param logRequests флаг логирования исходящих запросов
+     * @param logResponses флаг логирования входящих ответов
+     * @param verifySslCerts флаг проверки SSL сертификатов
+     * @param maxRetries максимальное количество повторных попыток при ошибках сети
+     * @param maxRetriesOnAuthError максимальное количество повторных попыток при ошибках аутентификации
+     * @param listeners слушатели событий модели
+     * @param responseFormat формат ответа модели (JSON schema или текст)
+     * @param strictJsonSchema флаг строгой валидации JSON схемы
+     * @param supportedCapabilities поддерживаемые возможности модели
+     * @param defaultChatRequestParameters параметры запроса по умолчанию
+     */
     @Builder
     public GigaChatChatModel(HttpClient apiHttpClient,
                              AuthClient authClient,
                              Integer readTimeout,
                              Integer connectTimeout,
                              String apiUrl,
+            String apiV2Url,
                              boolean logRequests,
                              boolean logResponses,
                              boolean verifySslCerts,
@@ -56,10 +92,11 @@ public class GigaChatChatModel implements ChatModel {
             ResponseFormat responseFormat,
             Boolean strictJsonSchema,
             Set<Capability> supportedCapabilities,
-                             GigaChatChatRequestParameters defaultChatRequestParameters) {
+            GigaChatChatRequestParameters defaultChatRequestParameters) {
         this.client = GigaChatClient.builder()
                 .apiHttpClient(apiHttpClient)
                 .apiUrl(apiUrl)
+                .apiV2Url(apiV2Url)
                 .authClient(authClient)
                 .connectTimeout(connectTimeout)
                 .readTimeout(readTimeout)
@@ -71,18 +108,12 @@ public class GigaChatChatModel implements ChatModel {
         this.maxRetries = getOrDefault(maxRetries, 1);
         this.listeners = copy(listeners);
         this.supportedCapabilities = copy(supportedCapabilities);
-        ChatRequestParameters commonParameters;
-        if (defaultChatRequestParameters != null) {
-            commonParameters = defaultChatRequestParameters;
-        } else {
-            commonParameters = DefaultChatRequestParameters.builder().build();
-        }
-        GigaChatChatRequestParameters gigaChatParameters;
-        if (defaultChatRequestParameters != null) {
-            gigaChatParameters = defaultChatRequestParameters;
-        } else {
-            gigaChatParameters = GigaChatChatRequestParameters.builder().build();
-        }
+        ChatRequestParameters commonParameters = defaultChatRequestParameters != null
+                ? defaultChatRequestParameters
+                : DefaultChatRequestParameters.builder().build();
+        GigaChatChatRequestParameters gigaChatParameters = defaultChatRequestParameters != null
+                ? defaultChatRequestParameters
+                : GigaChatChatRequestParameters.builder().build();
 
         this.defaultChatRequestParameters = GigaChatChatRequestParameters.builder()
                 // default
@@ -108,13 +139,29 @@ public class GigaChatChatModel implements ChatModel {
                         firstNotNull("strictJsonSchema", strictJsonSchema, gigaChatParameters.getStrictJsonSchema(),
                                 false))
                 .responseFormat(getOrDefault(responseFormat, commonParameters.responseFormat()))
+                .useV2Completions(getOrDefault(gigaChatParameters.getUseV2Completions(), false))
                 .build();
     }
 
     @Override
     public ChatResponse doChat(ChatRequest chatRequest) {
-        return toResponse(withRetry(() -> client.completions(toRequest(chatRequest), defaultChatRequestParameters.getSessionId()), maxRetries));
+        boolean useV2 = shouldUseV2(chatRequest);
+        String sessionId = chatRequest.parameters() instanceof GigaChatChatRequestParameters gigaChatParameters
+                ? gigaChatParameters.getSessionId()
+                : defaultChatRequestParameters.getSessionId();
+        if (useV2) {
+            CompletionRequestV2 requestV2 = toRequestV2(chatRequest);
+            CompletionResponseV2 responseV2 = withRetry(() ->
+                            client.completionsV2(requestV2, sessionId),
+                    maxRetries);
+            return toResponseV2(responseV2);
+        } else {
+            return toResponse(withRetry(
+                    () -> client.completions(toRequest(chatRequest), sessionId),
+                    maxRetries));
+        }
     }
+
 
     @Override
     public List<ChatModelListener> listeners() {

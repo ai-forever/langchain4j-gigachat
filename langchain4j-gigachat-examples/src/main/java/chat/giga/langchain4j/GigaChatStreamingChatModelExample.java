@@ -19,7 +19,7 @@ public class GigaChatStreamingChatModelExample {
                     .authClient(AuthClient.builder()
                             .withOAuth(AuthClientBuilder.OAuthBuilder.builder()
                                     .scope(Scope.GIGACHAT_API_PERS)
-                                    .authKey("key")
+                                    .authKey(System.getenv("AUTH_KEY"))
                                     .build())
                             .build())
                     .defaultChatRequestParameters(GigaChatChatRequestParameters.builder()
@@ -27,7 +27,6 @@ public class GigaChatStreamingChatModelExample {
                             .modelName(ModelName.GIGA_CHAT_PRO_2)
                             .responseFormat(JsonSchema.builder().build())
                             .build())
-                    .verifySslCerts(false)
                     .logRequests(true)
                     .logResponses(true)
                     .build();

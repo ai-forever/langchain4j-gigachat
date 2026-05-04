@@ -27,7 +27,7 @@ LangGraph4j — библиотека для разработки агентов,
 ### Gradle
 
 ```kotlin
-implementation("chat.giga:langchain4j-gigachat:0.1.18")
+implementation("chat.giga:langchain4j-gigachat:0.1.19")
 ```
 
 ### Maven
@@ -37,7 +37,7 @@ implementation("chat.giga:langchain4j-gigachat:0.1.18")
 <dependency>
     <groupId>chat.giga</groupId>
     <artifactId>langchain4j-gigachat</artifactId>
-    <version>0.1.18</version>
+    <version>0.1.19</version>
 </dependency>
 ```
 

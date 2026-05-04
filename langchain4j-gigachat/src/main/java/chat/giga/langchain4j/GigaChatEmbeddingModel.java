@@ -24,10 +24,32 @@ import static java.util.stream.Collectors.toList;
  */
 public class GigaChatEmbeddingModel extends DimensionAwareEmbeddingModel {
 
+    /**
+     * Клиент для работы с GigaChat API
+     */
     private final GigaChatClient gigaChatClient;
+
+    /** Имя модели для генерации эмбеддингов */
     private final String modelName;
+
+    /** Размер батча для обработки текстов */
     private final Integer batchSize;
 
+    /**
+     * Создает экземпляр GigaChatEmbeddingModel с использованием builder pattern.
+     *
+     * @param apiHttpClient HTTP-клиент для API запросов (опционально)
+     * @param authClient клиент аутентификации для получения токенов доступа
+     * @param readTimeout таймаут чтения в миллисекундах (опционально)
+     * @param connectTimeout таймаут подключения в миллисекундах (опционально)
+     * @param apiUrl URL API GigaChat (опционально, по умолчанию используется официальный эндпоинт)
+     * @param logRequests флаг логирования исходящих запросов
+     * @param logResponses флаг логирования входящих ответов
+     * @param verifySslCerts флаг проверки SSL сертификатов
+     * @param modelName имя модели для генерации эмбеддингов (опционально)
+     * @param batchSize размер батча для обработки текстов (опционально, по умолчанию 16)
+     * @param maxRetriesOnAuthError максимальное количество повторных попыток при ошибках аутентификации (опционально)
+     */
     @Builder
     public GigaChatEmbeddingModel(HttpClient apiHttpClient,
                                   AuthClient authClient,

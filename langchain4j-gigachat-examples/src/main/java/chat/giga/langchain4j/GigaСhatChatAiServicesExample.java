@@ -19,7 +19,7 @@ public class GigaСhatChatAiServicesExample {
                     .authClient(AuthClient.builder()
                             .withOAuth(AuthClientBuilder.OAuthBuilder.builder()
                                     .scope(Scope.GIGACHAT_API_PERS)
-                                    .authKey("key")
+                                    .authKey(System.getenv("AUTH_KEY"))
                                     .build())
                             .build())
                     .defaultChatRequestParameters(GigaChatChatRequestParameters.builder()
