@@ -440,10 +440,10 @@ public class GigaChatHelperV2 {
                         new com.fasterxml.jackson.core.type.TypeReference<>() {
                         });
             }
-            return null;
+            return List.of();
         } catch (Exception e) {
             log.warn("Failed to extract few_shot_examples from ToolSpecification metadata: {}", e.getMessage());
-            return null;
+            return List.of();
         }
     }
 
