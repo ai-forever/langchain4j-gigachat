@@ -48,6 +48,37 @@ public class TestData {
                 .build();
     }
 
+    public static CompletionChunkResponse completionChunkEmptyContentResponse() {
+        return CompletionChunkResponse.builder()
+                .choice(ChoiceChunk.builder()
+                        .delta(ChoiceMessageChunk.builder()
+                                .role(ASSISTANT)
+                                .content("")
+                                .build())
+                        .index(0)
+                        .build())
+                .created(3214)
+                .model("testModel")
+                .object("test")
+                .build();
+    }
+
+    public static CompletionChunkResponse completionChunkContentOnlyResponse(String content) {
+        return CompletionChunkResponse.builder()
+                .choice(ChoiceChunk.builder()
+                        .delta(ChoiceMessageChunk.builder()
+                                .role(ASSISTANT)
+                                .content(content)
+                                .build())
+                        .index(0)
+                        .finishReason(ChoiceFinishReason.STOP)
+                        .build())
+                .created(3214)
+                .model("testModel")
+                .object("test")
+                .build();
+    }
+
     public static CompletionChunkResponse completionChunkNullFieldsResponse() {
         return CompletionChunkResponse.builder()
                 .choice(ChoiceChunk.builder()

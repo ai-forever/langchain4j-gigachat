@@ -212,9 +212,10 @@ public class GigaChatStreamingChatModel implements StreamingChatModel {
                                 event.messages().forEach(message -> {
                                     if (message.content() != null) {
                                         message.content().forEach(part -> {
-                                            if (part.text() != null) {
-                                                text.append(part.text());
-                                                handler.onPartialResponse(part.text());
+                                            String partText = part.text();
+                                            if (partText != null && !partText.isEmpty()) {
+                                                text.append(partText);
+                                                handler.onPartialResponse(partText);
                                             }
                                             if (part.functionCall() != null) {
                                                 var functionCall = part.functionCall();
@@ -305,9 +306,10 @@ public class GigaChatStreamingChatModel implements StreamingChatModel {
         responseMetadataBuilder.modelName(chatCompletionChunk.model());
 
         chatCompletionChunk.choices().forEach(choice -> {
-            if (choice.delta().content() != null) {
-                text.append(choice.delta().content());
-                handler.onPartialResponse(choice.delta().content());
+            String content = choice.delta().content();
+            if (content != null && !content.isEmpty()) {
+                text.append(content);
+                handler.onPartialResponse(content);
             }
             if (choice.finishReason() == ChoiceFinishReason.FUNCTION_CALL) {
                 toolExecutionRequests.add(toToolExecutionRequest(choice));
