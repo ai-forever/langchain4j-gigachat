@@ -10,7 +10,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.request.DefaultChatRequestParameters;
-import dev.langchain4j.model.chat.request.json.JsonSchema;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.chat.response.StreamingChatResponseHandler;
 import org.junit.jupiter.api.BeforeEach;
@@ -92,5 +91,39 @@ public class GigaChatChatStreamingModelTest {
         assertThat(responseCaptorFinal.getValue().finishReason().name().toLowerCase()).isEqualTo(
                 body.choices().get(0).finishReason().value());
 
+    }
+
+    @Test
+    void shouldSkipEmptyPartialContent() {
+        var emptyBody = TestData.completionChunkEmptyContentResponse();
+        var contentBody = TestData.completionChunkContentOnlyResponse("hello");
+
+        doAnswer(i -> {
+            var listener = i.getArgument(1, SseListener.class);
+            listener.onError(new HttpClientException(401, null));
+            return null;
+        }).doAnswer(i -> {
+            var listener = i.getArgument(1, SseListener.class);
+            listener.onData(objectMapper.writeValueAsString(emptyBody));
+            listener.onData(objectMapper.writeValueAsString(contentBody));
+            listener.onComplete();
+            return null;
+        }).when(httpClient).execute(any(), any(SseListener.class));
+
+        model.chat(
+                ChatRequest.builder()
+                        .messages(new UserMessage("test"))
+                        .parameters(DefaultChatRequestParameters.builder().modelName(ModelName.GIGA_CHAT_PRO)
+                                .build())
+                        .build(),
+                completionChunkResponseHandler);
+
+        var responseCaptor = ArgumentCaptor.forClass(String.class);
+        verify(completionChunkResponseHandler, timeout(300)).onPartialResponse(responseCaptor.capture());
+        verify(completionChunkResponseHandler, after(100).never()).onPartialResponse("");
+        verify(completionChunkResponseHandler, timeout(100)).onCompleteResponse(any());
+        verify(completionChunkResponseHandler, after(100).never()).onError(any());
+
+        assertThat(responseCaptor.getAllValues()).containsExactly("hello");
     }
 }
