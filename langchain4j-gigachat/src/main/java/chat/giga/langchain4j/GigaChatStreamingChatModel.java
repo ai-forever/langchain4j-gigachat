@@ -134,6 +134,7 @@ public class GigaChatStreamingChatModel implements StreamingChatModel {
                                 false))
                 .responseFormat(getOrDefault(responseFormat, commonParameters.responseFormat()))
                 .useV2Completions(getOrDefault(gigaChatParameters.getUseV2Completions(), false))
+                .reasoningEffort(gigaChatParameters.getReasoningEffort())
                 .build();
     }
 

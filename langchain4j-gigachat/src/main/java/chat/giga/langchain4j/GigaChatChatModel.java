@@ -140,6 +140,7 @@ public class GigaChatChatModel implements ChatModel {
                                 false))
                 .responseFormat(getOrDefault(responseFormat, commonParameters.responseFormat()))
                 .useV2Completions(getOrDefault(gigaChatParameters.getUseV2Completions(), false))
+                .reasoningEffort(gigaChatParameters.getReasoningEffort())
                 .build();
     }
 
