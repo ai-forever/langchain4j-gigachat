@@ -178,6 +178,34 @@ public class TestData {
                 .build();
     }
 
+    public static CompletionResponse completionFunctionCallResponseWithPerCallId() {
+        return CompletionResponse.builder()
+                .choice(Choice.builder()
+                        .message(ChoiceMessage.builder()
+                                .role(ASSISTANT)
+                                .content(MESSAGE)
+                                .functionCall(ChoiceMessageFunctionCall.builder()
+                                        .id("per-call-id-123")
+                                        .argument("key", "value")
+                                        .name("testFunction")
+                                        .build())
+                                .functionsStateId("841b498c-9ef1-4791-a329-e86c44727327")
+                                .created(12344343)
+                                .build())
+                        .index(0)
+                        .finishReason(ChoiceFinishReason.FUNCTION_CALL)
+                        .build())
+                .created(321334)
+                .model("testModel")
+                .usage(Usage.builder()
+                        .promptTokens(1)
+                        .completionTokens(2)
+                        .totalTokens(3)
+                        .build())
+                .object("test")
+                .build();
+    }
+
     public static ChatRequest.Builder chatRequest() {
         return ChatRequest.builder()
                 .messages(AiMessage.builder()

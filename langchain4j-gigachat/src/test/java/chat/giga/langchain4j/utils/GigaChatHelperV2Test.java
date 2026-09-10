@@ -6,7 +6,10 @@ import chat.giga.model.v2.completion.ChatMessageRoleV2;
 import chat.giga.model.v2.completion.ChatMessageV2;
 import chat.giga.model.v2.completion.CompletionRequestV2;
 import chat.giga.model.v2.completion.CompletionResponseV2;
+import chat.giga.model.v2.completion.FunctionCallContentV2;
+import chat.giga.model.v2.completion.MessageContentPartV2;
 import chat.giga.model.v2.completion.stream.CompletionStreamUsageV2;
+import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.agent.tool.ToolSpecification;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.chat.request.ChatRequest;
@@ -133,6 +136,53 @@ public class GigaChatHelperV2Test {
         assertThat(requestV2.modelOptions()).isNotNull();
         assertThat(requestV2.modelOptions().temperature()).isEqualTo(0.7f);
         assertThat(requestV2.modelOptions().maxTokens()).isEqualTo(100);
+    }
+
+    @Test
+    void shouldPropagateParallelToolCallsToModelOptions() {
+        ChatRequest chatRequest = ChatRequest.builder()
+                .messages(List.of(UserMessage.from("Hello")))
+                .parameters(GigaChatChatRequestParameters.builder()
+                        .modelName(ModelName.GIGA_CHAT_ULTRA_3)
+                        .useV2Completions(true)
+                        .parallelToolCalls(true)
+                        .build())
+                .build();
+
+        CompletionRequestV2 requestV2 = GigaChatHelperV2.toRequestV2(chatRequest);
+
+        assertThat(requestV2.modelOptions()).isNotNull();
+        assertThat(requestV2.modelOptions().parallelToolCalls()).isTrue();
+    }
+
+    @Test
+    void shouldExtractPerCallFunctionIdFromV2Response() {
+        FunctionCallContentV2 functionCall = FunctionCallContentV2.builder()
+                .id("call-v2-42")
+                .name("getWeather")
+                .argument("city", "Moscow")
+                .build();
+        MessageContentPartV2 part = MessageContentPartV2.builder()
+                .functionCall(functionCall)
+                .text("calling getWeather")
+                .build();
+        ChatMessageV2 assistantMessage = ChatMessageV2.builder()
+                .role(ChatMessageRoleV2.ASSISTANT)
+                .toolsStateId("state-id-old")
+                .content(List.of(part))
+                .build();
+        CompletionResponseV2 responseV2 = CompletionResponseV2.builder()
+                .model("GigaChat-Pro")
+                .messages(List.of(assistantMessage))
+                .finishReason("function_call")
+                .build();
+
+        ChatResponse chatResponse = GigaChatHelperV2.toResponseV2(responseV2);
+
+        assertThat(chatResponse.aiMessage().toolExecutionRequests()).hasSize(1);
+        ToolExecutionRequest request = chatResponse.aiMessage().toolExecutionRequests().get(0);
+        assertThat(request.id()).isEqualTo("call-v2-42");
+        assertThat(request.name()).isEqualTo("getWeather");
     }
 
     @Test

@@ -100,7 +100,8 @@ public class GigaChatHelperV2 {
                 .repetitionPenalty(parameters.getRepetitionPenalty())
                 .updateInterval(parameters.getUpdateInterval())
                 .responseFormat(toResponseFormatV2(chatRequest.responseFormat(),
-                        parameters.getStrictJsonSchema()));
+                        parameters.getStrictJsonSchema()))
+                .parallelToolCalls(parameters.getParallelToolCalls());
 
         // Add reasoning if reasoningEffort is set
         if (parameters.getReasoningEffort() != null) {
@@ -256,6 +257,7 @@ public class GigaChatHelperV2 {
                 .filter(part -> part.functionCall() != null)
                 .map(part -> {
                     FunctionCallContentV2 functionCall = part.functionCall();
+                    String functionId = functionCall.id() != null ? functionCall.id() : toolId;
                     String arguments;
                     try {
                         if (functionCall.arguments() != null) {
@@ -269,7 +271,7 @@ public class GigaChatHelperV2 {
                         arguments = functionCall.arguments() != null ? functionCall.arguments().toString() : "{}";
                     }
                     return ToolExecutionRequest.builder()
-                            .id(toolId)
+                            .id(functionId)
                             .name(functionCall.name())
                             .arguments(arguments)
                             .build();
@@ -318,6 +320,7 @@ public class GigaChatHelperV2 {
             List<MessageContentPartV2> content = toolRequest
                     .map(req -> List.of(MessageContentPartV2.builder()
                             .functionCall(FunctionCallContentV2.builder()
+                                    .id(req.id())
                                     .name(req.name())
                                     .arguments(parseArguments(req.arguments()))
                                     .build())
