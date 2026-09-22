@@ -41,6 +41,7 @@ import static chat.giga.langchain4j.TestData.chatRequest;
 import static chat.giga.langchain4j.TestData.completionChunkNullFieldsResponse;
 import static chat.giga.langchain4j.TestData.completionChunkResponse;
 import static chat.giga.langchain4j.TestData.completionFunctionCallResponse;
+import static chat.giga.langchain4j.TestData.completionFunctionCallResponseWithPerCallId;
 import static chat.giga.langchain4j.TestData.completionNullFinishReasonResponse;
 import static chat.giga.langchain4j.TestData.completionResponse;
 import static chat.giga.model.completion.ChatMessageRole.FUNCTION;
@@ -93,6 +94,17 @@ class GigaChatHelperTest {
         assertEquals("testModel", response.metadata().modelName());
         assertEquals(new TokenUsage(1, 2, 3), response.metadata().tokenUsage());
         assertEquals(TOOL_EXECUTION, response.metadata().finishReason());
+    }
+
+    @Test
+    void testToResponsePrefersPerCallFunctionIdOverFunctionsStateId() {
+        CompletionResponse response = completionFunctionCallResponseWithPerCallId();
+
+        ChatResponse chatResponse = GigaChatHelper.toResponse(response);
+
+        assertNotNull(chatResponse.aiMessage().toolExecutionRequests());
+        assertEquals(1, chatResponse.aiMessage().toolExecutionRequests().size());
+        assertEquals("per-call-id-123", chatResponse.aiMessage().toolExecutionRequests().get(0).id());
     }
 
     @Test

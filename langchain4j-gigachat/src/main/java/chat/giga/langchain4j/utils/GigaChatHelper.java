@@ -84,8 +84,11 @@ public class GigaChatHelper {
                     ToolExecutionRequest toolExecutionRequest = null;
                     if (s.message().functionCall() != null) {
                         var args = toArgumentsString(s.message().functionCall());
+                        String functionId = s.message().functionCall().id() != null
+                                ? s.message().functionCall().id()
+                                : s.message().functionsStateId();
                         toolExecutionRequest = ToolExecutionRequest.builder()
-                                .id(s.message().functionsStateId())
+                                .id(functionId)
                                 .name(s.message().functionCall().name())
                                 .arguments(args)
                                 .build();
@@ -300,6 +303,7 @@ public class GigaChatHelper {
             if (firstRequest != null) {
                 builder.functionsStateId(firstRequest.id())
                         .functionCall(ChoiceMessageFunctionCall.builder()
+                                .id(firstRequest.id())
                                 .name(firstRequest.name())
                                 .arguments(getArguments(firstRequest.arguments()))
                                 .build());

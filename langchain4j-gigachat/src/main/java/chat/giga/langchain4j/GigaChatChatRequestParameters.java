@@ -116,6 +116,12 @@ public class GigaChatChatRequestParameters extends DefaultChatRequestParameters 
     private final String reasoningEffort;
 
     /**
+     * Включение параллельного вызова нескольких функций/тулов (в API v2). Соответствует полю
+     * {@code model_options.parallel_tool_calls}.
+     */
+    private final Boolean parallelToolCalls;
+
+    /**
      * Настройки фильтрации (в API v2). Позволяют точечно управлять фильтрами запроса и ответа (нейрофильльтр,
      * чёрный/белый список).
      */
@@ -154,6 +160,7 @@ public class GigaChatChatRequestParameters extends DefaultChatRequestParameters 
         this.memoryId = builder.memoryId;
         this.flags = builder.flags;
         this.reasoningEffort = builder.reasoningEffort;
+        this.parallelToolCalls = builder.parallelToolCalls;
         this.toolConfig = builder.toolConfig;
         this.filterConfig = builder.filterConfig;
         this.rankerOptions = builder.rankerOptions;
@@ -208,6 +215,7 @@ public class GigaChatChatRequestParameters extends DefaultChatRequestParameters 
         private String memoryId;
         private List<String> flags;
         private String reasoningEffort;
+        private Boolean parallelToolCalls;
         private ToolConfigV2 toolConfig;
         private FilterConfigV2 filterConfig;
         private RankerOptionsV2 rankerOptions;
@@ -393,6 +401,17 @@ public class GigaChatChatRequestParameters extends DefaultChatRequestParameters 
         }
 
         /**
+         * Включает или выключает параллельный вызов нескольких функций/тулов (в API v2).
+         *
+         * @param parallelToolCalls {@code true} — модель может вернуть аргументы сразу для нескольких функций
+         * @return текущий builder
+         */
+        public GigaChatBuilder parallelToolCalls(Boolean parallelToolCalls) {
+            this.parallelToolCalls = parallelToolCalls;
+            return this;
+        }
+
+        /**
          * Поле, которое отвечает за то, как GigaChat будет работать с функциями (в v2 АПИ).
          *
          * @param toolConfig
@@ -492,6 +511,7 @@ public class GigaChatChatRequestParameters extends DefaultChatRequestParameters 
                 memoryId(getOrDefault(chatChatRequestParameters.getMemoryId(), memoryId));
                 flags(getOrDefault(chatChatRequestParameters.getFlags(), flags));
                 reasoningEffort(getOrDefault(chatChatRequestParameters.getReasoningEffort(), reasoningEffort));
+                parallelToolCalls(getOrDefault(chatChatRequestParameters.getParallelToolCalls(), parallelToolCalls));
                 toolConfig(getOrDefault(chatChatRequestParameters.getToolConfig(), toolConfig));
                 filterConfig(getOrDefault(chatChatRequestParameters.getFilterConfig(), filterConfig));
                 rankerOptions(getOrDefault(chatChatRequestParameters.getRankerOptions(), rankerOptions));
